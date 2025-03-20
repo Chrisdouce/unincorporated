@@ -1,9 +1,11 @@
 {
   "name": "deeprivals",
-  "version": "0.1.0",
+  "type": "module",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "test-db": "tsx ./src/test-db.ts",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -11,18 +13,32 @@
   "dependencies": {
     "@emotion/cache": "^11.14.0",
     "@mui/material-nextjs": "^6.4.3",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "kysely": "^0.27.6",
     "next": "15.2.3",
     "pg": "^8.14.1",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "verror": "^1.10.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@types/node": "^20",
+    "@eslint/js": "^9.22.0",
+    "@types/express": "^5.0.1",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/node": "^20.17.24",
+    "@types/pg": "^8.11.11",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/supertest": "^6.0.2",
+    "@types/verror": "^1.10.11",
     "eslint": "^9",
     "eslint-config-next": "15.2.3",
-    "typescript": "^5"
+    "supertest": "^7.1.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5",
+    "typescript-eslint": "^8.27.0"
   }
 }
