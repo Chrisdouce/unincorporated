@@ -12,7 +12,6 @@ export type UserTable = {
   userId: Generated<string>;
   username: string;
   hashedPassword: string;
-  apiKey: string;
   createdAt: Date;
   updatedAt: Date;
 };
