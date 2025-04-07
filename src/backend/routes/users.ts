@@ -1,10 +1,37 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { createUser, getAllUsers, getUserById, getUserByUsername, updateUser, deleteUser } from '../repositories/users.js';
 import 'dotenv/config';
 
 const router = express.Router();
+
+//Verify the JWT token for a user
+function verifyToken(req: Request, res: Response, next: NextFunction) {
+    const authHeader = req.get('Authorization');
+    if(!authHeader) {
+        res.sendStatus(401);
+        return;
+    }
+    const authSegments = authHeader.split(' ');
+    if(authSegments.length !== 2 || authSegments[0] !== 'Bearer') {
+        res.sendStatus(401);
+        return;
+    }
+    const token = authSegments[1];
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+        throw new Error('JWT_SECRET is not defined in .env file');
+    }
+    try {
+        jwt.verify(token, secret);
+        next();
+    } catch (err) {
+        console.log(err)
+        res.sendStatus(401);
+    }
+}
+
 
 //Gets all users
 router.get('/users', async (req, res, next) => {
@@ -170,7 +197,6 @@ router.delete('/users/:userId', async (req, res, next) => {
 });
 
 router.post('/users/login', async (req, res, next) => {
-    console.log('Login request received:', req.body);
     const [username, password] = [req.body.username, req.body.password];
     if (!username || !password) {
         res.status(400).json({ error: 'username and password are required' });
@@ -180,13 +206,11 @@ router.post('/users/login', async (req, res, next) => {
         res.status(400).json({ error: 'username and password must be strings' });
         return;
     }
-    console.log("format check passed")
     const matchingUser = await getUserByUsername(username);
     if (!matchingUser) {
         res.status(401).json({ error: 'Invalid username or password' });
         return;
     }
-    console.log("user found")
     bcrypt.compare(password, matchingUser.hashedPassword, function(err, result) {
         if(err) {
             res.status(401).json({ error: 'Invalid username or password' });
