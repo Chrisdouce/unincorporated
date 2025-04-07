@@ -161,12 +161,34 @@ describe('User routes', () => {
         }
     });
 
-    test('POST /users/login returns 401 for invalid credentials', async () => {
+    test('POST /users/login returns 401 for invalid credentials or if token fails', async () => {
         let res = await request.post('/api/v1/users/login').send({
             username: 'testuser',
             password: 'wrongpassword'
         });
         assert.strictEqual(res.status, 401);
+
+        res = await request.post('/api/v1/users/login').send({
+            username: 'testuser',
+            password: 'password123'
+        });
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+            throw new Error('JWT_SECRET is not defined in .env file');
+        }
+        try {
+            jwt.verify("Bad token", secret);
+            assert.fail('Token verification failed');
+        } catch (err) {
+            assert.ok(err instanceof jwt.JsonWebTokenError, 'Token verification failed as expected');
+        }
+
+        try{
+            jwt.verify(res.body.token, "Bad token");
+            assert.fail('Token verification failed');
+        } catch (err) {
+            assert.ok(err instanceof jwt.JsonWebTokenError, 'Token verification failed as expected');
+        }
     });
 
 });
