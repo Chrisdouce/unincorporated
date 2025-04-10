@@ -1,9 +1,37 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 import { createUser, getAllUsers, getUserById, getUserByUsername, updateUser, deleteUser } from '../repositories/users.js';
 import 'dotenv/config';
 
 const router = express.Router();
+
+//Verify the JWT token for a user
+function verifyToken(req: Request, res: Response, next: NextFunction) {
+    const authHeader = req.get('Authorization');
+    if(!authHeader) {
+        res.sendStatus(401);
+        return;
+    }
+    const authSegments = authHeader.split(' ');
+    if(authSegments.length !== 2 || authSegments[0] !== 'Bearer') {
+        res.sendStatus(401);
+        return;
+    }
+    const token = authSegments[1];
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+        throw new Error('JWT_SECRET is not defined in .env file');
+    }
+    try {
+        jwt.verify(token, secret);
+        next();
+    } catch (err) {
+        console.log(err)
+        res.sendStatus(401);
+    }
+}
+
 
 //Gets all users
 router.get('/users', async (req, res, next) => {
@@ -50,14 +78,17 @@ router.post('/users', async (req, res, next) => {
             return;
         }
 
-        //TODO: Hash the password before storing it
-
-        const user = await createUser(
-            {
-                "username": req.body.username,
-                "hashedPassword": req.body.password,
+        // Hashing password with bcrypt
+        const saltRounds = 10;
+        bcrypt.genSalt(saltRounds, function(_err: any, salt: any) {
+            bcrypt.hash(req.body.password, salt, async function(_err: any, hash: any) {
+                const user = await createUser({
+                    "username": req.body.username,
+                    "hashedPassword": hash,
+                });
+                res.status(201).json(user);
             });
-        res.status(201).json(user);
+        });
     } catch (err) {
         next(err);
     }
@@ -72,12 +103,17 @@ router.get('/users/:userId', async (req, res, next) => {
             return;
         } 
         const user = await getUserById(req.params.userId);
-        console.log(user);
         if (!user) {
             res.status(404).json({ error: 'User not found' });
             return;
         }
-        res.status(200).json(user);
+        const userWithoutPassword = {
+            userId: user.userId,
+            username: user.username,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt
+        };
+        res.status(200).json(userWithoutPassword);
     } catch (err) {
         next(err);
     }
@@ -159,5 +195,40 @@ router.delete('/users/:userId', async (req, res, next) => {
         next(err);
     }
 });
+
+router.post('/users/login', async (req, res, next) => {
+    const [username, password] = [req.body.username, req.body.password];
+    if (!username || !password) {
+        res.status(400).json({ error: 'username and password are required' });
+        return;
+    }
+    if (typeof username !== 'string' || typeof password !== 'string') {
+        res.status(400).json({ error: 'username and password must be strings' });
+        return;
+    }
+    const matchingUser = await getUserByUsername(username);
+    if (!matchingUser) {
+        res.status(401).json({ error: 'Invalid username or password' });
+        return;
+    }
+    bcrypt.compare(password, matchingUser.hashedPassword, function(err, result) {
+        if(err) {
+            res.status(401).json({ error: 'Invalid username or password' });
+            return;
+        }
+        if(result){
+            if (!process.env.JWT_SECRET) {
+                throw new Error('JWT_SECRET is not defined in the environment variables');
+            }
+            const token = jwt.sign({ userId: matchingUser.userId }, process.env.JWT_SECRET, { expiresIn: '1h' });
+            res.status(200).json({ token });
+        } else {
+            res.status(401).json({ error: 'Invalid username or password' });
+            return;
+        }
+    });
+});
+
+    
 
 export default router;

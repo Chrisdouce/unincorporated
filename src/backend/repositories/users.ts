@@ -9,38 +9,30 @@ export type User = {
     updatedAt: Date;
 };
 
-export async function getAllUsers() {
-    const users =  await db
+export async function getAllUsers(): Promise<Omit<User, 'hashedPassword'>[] | null> {
+    const users = await db
         .selectFrom('user')
         .select(['userId', 'username', 'createdAt', 'updatedAt'])
         .execute();
     return users;
 }
 
-export async function getUserById(userId: string) {
+export async function getUserById(userId: string): Promise<User | null> {
     const user = await db
         .selectFrom('user')
-        .select(['userId', 'username', 'createdAt', 'updatedAt'])
+        .selectAll()
         .where('userId', '=', userId)
         .executeTakeFirst();
     return user || null;
 }
 
-export async function getUserByUsername(username: string) {
-    return await db
+export async function getUserByUsername(username: string): Promise<User | null> {
+    const user = await db
         .selectFrom('user')
-        .select(['userId', 'username', 'createdAt', 'updatedAt'])
+        .selectAll()
         .where('username', '=', username)
         .executeTakeFirst();
-}
-
-export async function checkPassword(hashedPassword: string): Promise<boolean>{
-    const user =  await db
-        .selectFrom('user')
-        .select(['userId'])
-        .where('hashedPassword', '=', hashedPassword)
-        .executeTakeFirst();
-    return user !== undefined;
+    return user || null;
 }
 
 export async function createUser(newUser: Omit<User, 'userId' | 'createdAt' | 'updatedAt'>): Promise<Omit<User, 'hashedPassword' | 'updatedAt'>> {
