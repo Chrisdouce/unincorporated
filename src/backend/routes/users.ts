@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { createUser, getAllUsers, getUserById, getUserByUsername, updateUser, deleteUser } from '../repositories/users.js';
+import { createUser, getAllUsers, getUserById, getUserByUsername, updateUser, deleteUser, getAllFriendsByUserId, addFriend, removeFriend } from '../repositories/users.js';
 import 'dotenv/config';
 
 const router = express.Router();
@@ -229,6 +229,87 @@ router.post('/users/login', async (req, res, next) => {
     });
 });
 
+router.get('/users/:userId/friends', verifyToken, async (req, res, next) => {
+    //Check if userId is a valid UUID
+    if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.params.userId)) {
+        res.status(404).json({ error: 'Invalid UUID' });
+        return;
+    } 
+    const user = await getUserById(req.params.userId);
+    if (!user) {
+        res.status(404).json({ error: 'User not found' });
+        return;
+    }
     
+    const friends = await getAllFriendsByUserId(user.userId)
+    res.status(200).json(friends);
+});
+
+router.post('/users/:userId/friends', verifyToken, async (req, res, next) => {
+    //Check if userId is a valid UUID
+    if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.params.userId)) {
+        res.status(404).json({ error: 'Invalid UUID' });
+        return;
+    }
+    const user = await getUserById(req.params.userId);
+    if (!user) {
+        res.status(404).json({ error: 'User not found' });
+        return;
+    }
+
+    const friendId = req.body.friendId;
+    if (!friendId) {
+        res.status(400).json({ error: 'friendId is required' });
+        return;
+    }
+    if (typeof friendId !== 'string') {
+        res.status(400).json({ error: 'friendId must be a string' });
+        return;
+    }
+
+    if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(friendId)) {
+        res.status(400).json({ error: 'friendId must be a valid UUID' });
+        return;
+    }
+    const friend = await getUserById(friendId);
+    if (!friend) {
+        res.status(404).json({ error: 'Friend not found' });
+        return;
+    }
+    if (user.userId === friend.userId) {
+        res.status(400).json({ error: 'You cannot add yourself as a friend' });
+        return;
+    }
+
+    const newFriend = await addFriend(user.userId, friend.userId);
+    res.status(201).json(newFriend);
+});
+
+router.delete('/users/:userId/friends/:friendId', verifyToken, async (req, res, next) => {
+    //Check if userId is a valid UUID
+    if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.params.userId)) {
+        res.status(404).json({ error: 'Invalid UUID' });
+        return;
+    }
+    const user = await getUserById(req.params.userId);
+    if (!user) {
+        res.status(404).json({ error: 'User not found' });
+        return;
+    }
+    //Check if friendId is a valid UUID
+    if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.params.friendId)) {
+        res.status(400).json({ error: 'Invalid UUID' });
+        return;
+    }
+    const friend = await getUserById(req.params.friendId);
+    if (!friend) {
+        res.status(404).json({ error: 'Friend not found' });
+        return;
+    }
+
+    //Delete the friend from the database
+    const deletedFriend = await removeFriend(user.userId, friend.userId);
+    res.status(200).json(deletedFriend);
+});
 
 export default router;

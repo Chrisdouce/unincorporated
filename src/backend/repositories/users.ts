@@ -78,3 +78,38 @@ export async function deleteUser(userId: string) {
     return userId;
 }
 
+export async function getAllFriendsByUserId(userId: string): Promise<Omit<User, 'hashedPassword'>[] | null> {
+    const friends = await db
+        .selectFrom('friend')
+        .innerJoin('user', 'friend.friendBId', 'user.userId')
+        .select(['user.userId', 'user.username', 'user.createdAt', 'user.updatedAt'])
+        .where('friend.friendAId', '=', userId)
+        .execute();
+    return friends;
+}
+
+export async function addFriend(userId: string, friendId: string) {
+    const friend = await db.transaction().execute(async (trx) => {
+        return await trx
+            .insertInto('friend')
+            .values({
+                friendAId: userId,
+                friendBId: friendId,
+                createdAt: new Date()
+            })
+            .returning(['friendAId', 'friendBId'])
+            .executeTakeFirstOrThrow();
+    });
+    return friend;
+}
+
+export async function removeFriend(userId: string, friendId: string) {
+    const friend = await db.transaction().execute(async (trx) => {
+        return await trx
+            .deleteFrom('friend')
+            .where('friendAId', '=', userId)
+            .where('friendBId', '=', friendId)
+            .executeTakeFirstOrThrow();
+    });
+    return friend;
+}
