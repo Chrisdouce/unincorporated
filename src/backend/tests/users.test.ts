@@ -1,10 +1,11 @@
-import test, { describe } from "node:test";
+import test, { before, describe } from "node:test";
 import supertest from 'supertest';
 import { app } from "../index.js";
 import assert from "node:assert/strict";
 import 'dotenv/config';
-import { getUserByUsername } from "../repositories/users.js";
+import { getAllFriendsByUserId, getUserByUsername } from "../repositories/users.js";
 import jwt from 'jsonwebtoken';
+import { get } from "node:http";
 
 const request = supertest(app);
 
@@ -190,5 +191,162 @@ describe('User routes', () => {
             assert.ok(err instanceof jwt.JsonWebTokenError, 'Token verification failed as expected');
         }
     });
+});
 
+describe('Friend routes', () => {
+    test('GET /users/:userId/friends returns an empty array', async () => {
+        const user = await getUserByUsername('testuser');
+        if (!user) {
+            assert.fail('User not found');
+        }
+        let res = await request.post('/api/v1/users/login').send({
+            username: 'testuser',
+            password: 'password123'
+        });
+
+        res = await request.get(`/api/v1/users/${user.userId}/friends`).set('Authorization', `Bearer ${res.body.token}`).send();
+        assert.strictEqual(res.status, 200);
+        assert.deepStrictEqual(res.body, []);
+    });
+
+    test('POST /users/:userId/friends returns 201 for valid friend request', async () => {
+        const user = await getUserByUsername('testuser');
+        if (!user) {
+            assert.fail('User not found');
+        }
+        let res = await request.post('/api/v1/users/login').send({
+            username: 'testuser',
+            password: 'password123'
+        });
+        const friend = await request.post('/api/v1/users').send({
+            username: 'testuser2',
+            password: 'password123'
+        });
+        res = await request.post(`/api/v1/users/${user.userId}/friends`).set('Authorization', `Bearer ${res.body.token}`).send({
+            friendId: friend.body.userId
+        });
+        assert.strictEqual(res.status, 201);
+        assert.deepStrictEqual(res.body.friendAId, user.userId);
+        assert.deepStrictEqual(res.body.friendBId, friend.body.userId);
+    });
+
+    test('POST /users/:userId/friends returns 400 for bad data', async () => {
+        const user = await getUserByUsername('testuser');
+        if (!user) {
+            assert.fail('User not found');
+        }
+        let res = await request.post('/api/v1/users/login').send({
+            username: 'testuser',
+            password: 'password123'
+        });
+        const token = res.body.token;
+        res = await request.post(`/api/v1/users/${user.userId}/friends`).set('Authorization', `Bearer ${token}`).send({});
+        assert.strictEqual(res.status, 400);
+        assert.strictEqual(res.body.error, 'friendId is required');
+        res = await request.post(`/api/v1/users/${user.userId}/friends`).set('Authorization', `Bearer ${token}`).send({
+            friendId: user.userId
+        });
+        assert.strictEqual(res.status, 400);
+        assert.strictEqual(res.body.error, 'You cannot add yourself as a friend');
+    });
+
+    test('GET /users/:userId/friends returns 200 for multiple friends', async () => {
+        const user = await getUserByUsername('testuser');
+        if (!user) {
+            assert.fail('User not found');
+        }
+        const friendTwo = await request.post('/api/v1/users').send({
+            username: 'testuser3',
+            password: 'password123'
+        });
+        let res = await request.post('/api/v1/users/login').send({
+            username: 'testuser',
+            password: 'password123'
+        });
+        const token = res.body.token;
+        await request.post(`/api/v1/users/${user.userId}/friends`).set('Authorization', `Bearer ${token}`).send({
+            friendId: friendTwo.body.userId
+        });
+        res = await request.get(`/api/v1/users/${user.userId}/friends`).set('Authorization', `Bearer ${token}`).send();
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.length, 2);
+        assert.strictEqual(res.body[0].username, "testuser2");
+        assert.strictEqual(res.body[1].username, "testuser3");
+    });
+
+    test('GET /users/:userId/friends/:friendId returns 200 for a friend', async () => {
+        const user = await getUserByUsername('testuser');
+        if (!user) {
+            assert.fail('User not found');
+        }
+        let res = await request.post('/api/v1/users/login').send({
+            username: 'testuser',
+            password: 'password123'
+        });
+        const friend = await getUserByUsername('testuser2');
+        if (!friend) {
+            assert.fail('Friend not found');
+        }
+        res = await request.get(`/api/v1/users/${user.userId}/friends/${friend.userId}`).set('Authorization', `Bearer ${res.body.token}`).send();
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.username, "testuser2");
+    });
+
+    test('DELETE /users/:userId/friends returns 200 for valid friend removal', async () => {
+        const user = await getUserByUsername('testuser');
+        if (!user) {
+            assert.fail('User not found');
+        }
+        let res = await request.post('/api/v1/users/login').send({
+            username: 'testuser',
+            password: 'password123'
+        });
+        const token = res.body.token;
+        const friend = await getUserByUsername('testuser2');
+        if (!friend) {
+            assert.fail('Friend not found');
+        }
+        res = await request.delete(`/api/v1/users/${user.userId}/friends`).set('Authorization', `Bearer ${token}`).send({
+            friendId: friend.userId
+        });
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.friendAId, user.userId);
+        assert.strictEqual(res.body.friendBId, friend.userId);
+    });
+
+    test('DELETE /users/:userId/friends returns 400/401/404 for bad data', async () => {
+        const user = await getUserByUsername('testuser');
+        if (!user) {
+            assert.fail('User not found');
+        }
+        let res = await request.post('/api/v1/users/login').send({
+            username: 'testuser',
+            password: 'password123'
+        });
+        const token = res.body.token;
+
+        const friend = await getUserByUsername('testuser3');
+        if (!friend) {
+            assert.fail('Friend not found');
+        }
+        await request.delete(`/api/v1/users/${friend.userId}`).send();
+
+        res = await request.delete(`/api/v1/users/${user.userId}/friends`).set('Authorization', `Bearer`).send({});
+        assert.strictEqual(res.status, 401);
+
+        res = await request.delete(`/api/v1/users/${user.userId}/friends`).set('Authorization', `Bearer ${token}`).send({
+            friendId: user.userId
+        });
+        assert.strictEqual(res.status, 404);
+
+        res = await request.delete(`/api/v1/users/${user.userId}/friends`).set('Authorization', `Bearer ${token}`).send({
+            friendId: 'nonexistent'
+        });
+        assert.strictEqual(res.status, 400);
+
+        res = await request.delete(`/api/v1/users/${user.userId}/friends`).set('Authorization', `Bearer ${token}`).send({
+            friendId: friend.userId
+        });
+        assert.strictEqual(res.status, 404);
+    });
 });
