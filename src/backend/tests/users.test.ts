@@ -350,3 +350,37 @@ describe('Friend routes', () => {
         assert.strictEqual(res.status, 404);
     });
 });
+
+describe('Post routes', () => {
+    test('GET /users/:userId/posts returns an empty array', async () => {
+        const user = await getUserByUsername('testuser');
+        if (!user) {
+            assert.fail('User not found');
+        }
+        let res = await request.post('/api/v1/users/login').send({
+            username: 'testuser',
+            password: 'password123'
+        });
+
+        res = await request.get(`/api/v1/users/${user.userId}/posts`).set('Authorization', `Bearer ${res.body.token}`).send();
+        assert.strictEqual(res.status, 200);
+        assert.deepStrictEqual(res.body, []);
+    });
+
+    test('POST /users/:userId/posts returns 201 for valid post', async () => {
+        const user = await getUserByUsername('testuser');
+        if (!user) {
+            assert.fail('User not found');
+        }
+        let res = await request.post('/api/v1/users/login').send({
+            username: 'testuser',
+            password: 'password123'
+        });
+        const token = res.body.token;
+        res = await request.post(`/api/v1/users/${user.userId}/posts`).set('Authorization', `Bearer ${token}`).send({
+            content: 'This is a test post'
+        });
+        assert.strictEqual(res.status, 201);
+        assert.strictEqual(res.body.content, 'This is a test post');
+    });
+});

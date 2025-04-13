@@ -1,4 +1,3 @@
-import { randomUUID } from "crypto";
 import { db } from "../db/db.js";
 
 export type User = {
