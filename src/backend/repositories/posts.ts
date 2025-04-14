@@ -114,3 +114,39 @@ export async function deleteAllPostsByUserId(userId: string) {
     return deletedPosts;
 }
 
+export async function getUserReactionsOnPost(userId: string, postId: string) {
+    return await db
+        .selectFrom('reaction')
+        .selectAll()
+        .where('postId', '=', postId)
+        .where('userId', '=', userId)
+        .execute();
+}
+
+export async function createReactionOnPost(postId: string, userId: string, type: string) {
+    const createdReaction = await db.transaction().execute(async (trx) => {
+        return await trx
+            .insertInto('reaction')
+            .columns(['postId', 'userId', 'type'])
+            .values({ 
+                postId: postId,
+                userId: userId,
+                type: type
+            })
+            .returning(['postId', 'userId', 'type'])
+            .executeTakeFirstOrThrow();
+    });
+    return createdReaction;
+}
+
+export async function deleteReactionOnPost(postId: string, userId: string) {
+    const deletedReaction = await db.transaction().execute(async (trx) => {
+        return await trx
+            .deleteFrom('reaction')
+            .where('postId', '=', postId)
+            .where('userId', '=', userId)
+            .returning(['postId', 'userId', 'type'])
+            .execute();
+    });
+    return deletedReaction;
+}
