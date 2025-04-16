@@ -18,7 +18,7 @@ app.use('/api/v1', postsRouter);
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     const info = VError.info(err);
     res.status(info?.statusCode ?? 500).json({ error: info?.response ?? 'Internal Server Error' });
-  });
+});
 
 if (process.env.APP_ENV !== 'test') {
     app.listen(3000, () => console.log('Listening on port 3000'));

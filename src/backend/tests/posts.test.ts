@@ -4,7 +4,7 @@ import { app } from "../index.js";
 import assert from "node:assert/strict";
 import 'dotenv/config';
 import { deleteUser, getUserByUsername } from "../repositories/users.js";
-import { deleteAllPostsByUserId, getAllPostsByUserId } from "../repositories/posts.js";
+import { deleteAllPostsByUserId } from "../repositories/posts.js";
 
 const request = supertest(app);
 
@@ -37,6 +37,8 @@ describe('Post routes', () => {
 
         // Delete all posts by the test user
         await deleteAllPostsByUserId(user.userId);
+        
+        
     });
 
     test('GET /users/:userId/posts returns an empty array', async () => {
@@ -152,7 +154,4 @@ describe('Post routes', () => {
         assert.strictEqual(res.status, 200);
         assert.strictEqual(res.body.content, 'This is an updated test post');
     });
-
-    
-
 });
