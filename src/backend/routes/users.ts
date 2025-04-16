@@ -32,6 +32,9 @@ function verifyToken(req: Request, res: Response, next: NextFunction) {
     }
 }
 
+function isUUID(uuid: string) {
+    return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(uuid);
+}
 
 //Gets all users
 router.get('/users', async (req, res, next) => {
@@ -98,7 +101,7 @@ router.post('/users', async (req, res, next) => {
 router.get('/users/:userId', async (req, res, next) => {
     try {
         //Check if userId is a valid UUID
-        if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.params.userId)) {
+        if (isUUID(req.params.userId)) {
             res.status(404).json({ error: 'Invalid UUID' });
             return;
         } 
@@ -123,7 +126,7 @@ router.get('/users/:userId', async (req, res, next) => {
 router.put('/users/:userId', async (req, res, next) => {
     try {
         //Check if userId is a valid UUID
-        if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.params.userId)) {
+        if (isUUID(req.params.userId)) {
             res.status(404).json({ error: 'Invalid UUID' });
             return;
         } 
@@ -176,11 +179,11 @@ router.put('/users/:userId', async (req, res, next) => {
     }
 });
 
-//Deletes a user and all associated test and results
+//Deletes a user 
 router.delete('/users/:userId', async (req, res, next) => {
     try {
         //Check if userId is a valid UUID
-        if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.params.userId)) {
+        if (isUUID(req.params.userId)) {
             res.status(404).json({ error: 'Invalid UUID' });
             return;
         } 
@@ -231,7 +234,7 @@ router.post('/users/login', async (req, res, next) => {
 
 router.get('/users/:userId/friends', verifyToken, async (req, res, next) => {
     //Check if userId is a valid UUID
-    if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.params.userId)) {
+    if (isUUID(req.params.userId)) {
         res.status(404).json({ error: 'Invalid UUID' });
         return;
     } 
@@ -247,7 +250,7 @@ router.get('/users/:userId/friends', verifyToken, async (req, res, next) => {
 
 router.post('/users/:userId/friends', verifyToken, async (req, res, next) => {
     //Check if userId is a valid UUID
-    if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.params.userId)) {
+    if (isUUID(req.params.userId)) {
         res.status(404).json({ error: 'Invalid UUID' });
         return;
     }
@@ -291,7 +294,7 @@ router.post('/users/:userId/friends', verifyToken, async (req, res, next) => {
 
 router.get('/users/:userId/friends/:friendId', verifyToken, async (req, res, next) => {
     //Check if userId is a valid UUID
-    if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.params.userId)) {
+    if (isUUID(req.params.userId)) {
         res.status(404).json({ error: 'Invalid UUID' });
         return;
     }
@@ -301,7 +304,7 @@ router.get('/users/:userId/friends/:friendId', verifyToken, async (req, res, nex
         return;
     }
     //Check if friendId is a valid UUID
-    if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.params.friendId)) {
+    if (isUUID(req.params.friendId)) {
         res.status(400).json({ error: 'Invalid UUID' });
         return;
     }
@@ -320,7 +323,7 @@ router.get('/users/:userId/friends/:friendId', verifyToken, async (req, res, nex
 
 router.delete('/users/:userId/friends', verifyToken, async (req, res, next) => {
     //Check if userId is a valid UUID
-    if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.params.userId)) {
+    if (isUUID(req.params.userId)) {
         res.status(404).json({ error: 'Invalid UUID' });
         return;
     }
@@ -330,7 +333,7 @@ router.delete('/users/:userId/friends', verifyToken, async (req, res, next) => {
         return;
     }
     
-    //Check if friendId
+    //Validation for friendId
     if (!req.body.friendId) {
         res.status(400).json({ error: 'friendId is required' });
         return;
@@ -350,6 +353,7 @@ router.delete('/users/:userId/friends', verifyToken, async (req, res, next) => {
         res.status(404).json({ error: 'Friend not found' });
         return;
     }
+
     const friendRelation = await getFriendByUserId(user.userId, friend.userId);
     if (!friendRelation) {
         res.status(404).json({ error: 'Friend not found' });

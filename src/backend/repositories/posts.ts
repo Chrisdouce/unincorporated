@@ -92,13 +92,22 @@ export async function updatePost(postId: string, newContent: string) {
     });
 }
 
-export async function deletePost(postId: string) {
+export async function deletePost(postId: string): Promise<Post | null> {
     const deletedPost = await db.transaction().execute(async (trx) => {
-        return await trx
+        // Delete all reactions associated with the post
+        await trx
+            .deleteFrom('reaction')
+            .where('postId', '=', postId)
+            .execute();
+
+        // Delete the post itself
+        const post = await trx
             .deleteFrom('post')
             .where('postId', '=', postId)
-            .returning(['postId', 'ownerId', 'parentId', 'content'])
-            .execute();
+            .returning(['postId', 'ownerId', 'parentId', 'content', 'createdAt', 'updatedAt'])
+            .executeTakeFirst();
+
+        return post || null;
     });
     return deletedPost;
 }
@@ -123,7 +132,7 @@ export async function getUserReactionsOnPost(userId: string, postId: string) {
         .execute();
 }
 
-export async function createReactionOnPost(postId: string, userId: string, type: string) {
+export async function createReactionOnPost(userId: string, postId: string, type: string) {
     const createdReaction = await db.transaction().execute(async (trx) => {
         return await trx
             .insertInto('reaction')
@@ -139,7 +148,7 @@ export async function createReactionOnPost(postId: string, userId: string, type:
     return createdReaction;
 }
 
-export async function deleteReactionOnPost(postId: string, userId: string) {
+export async function deleteReactionOnPost(userId: string, postId: string) {
     const deletedReaction = await db.transaction().execute(async (trx) => {
         return await trx
             .deleteFrom('reaction')

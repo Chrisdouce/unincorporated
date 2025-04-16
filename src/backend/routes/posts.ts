@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
-import { createPost, deletePost, getAllPostsByUserId, getUserReactionsOnPost, updatePost } from '../repositories/posts';
+import { createPost, createReactionOnPost, deletePost, deleteReactionOnPost, getAllPostsByUserId, getPostByPostId, getUserReactionsOnPost, updatePost } from '../repositories/posts';
 import { getUserById } from '../repositories/users';
 
 const router = express.Router();
@@ -32,11 +32,95 @@ function verifyToken(req: Request, res: Response, next: NextFunction) {
     }
 }
 
+function isUUID(uuid: string) {
+    return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(uuid);
+}
+
+// If we need it later, we can uncomment this
+// //Gets all posts
+// router.get('/posts', verifyToken, async (req, res, next) => {
+//     try {
+//         const posts = await getAllPostsByUserId(req.params.userId);
+//         res.json(posts);
+//     } catch (err) {
+//         next(err);
+//     }
+// });
+// //Gets a post by postId
+// router.get('/posts/:postId', verifyToken, async (req, res, next) => {
+//     try {
+//         //Check if postId is a valid UUID
+//         if (!isUUID(req.params.postId)) {
+//             res.status(404).json({ error: 'Invalid UUID' });
+//             return;
+//         } 
+//         const post = await getAllPostsByUserId(req.params.postId);
+//         if (!post) {
+//             res.status(404).json({ error: 'Post not found' });
+//             return;
+//         }
+//         res.json(post);
+//     } catch (err) {
+//         next(err);
+//     }
+// });
+
 //Gets all posts from user
 router.get('/users/:userId/posts', verifyToken, async (req, res, next) => {
     try {
         //Check if userId is a valid UUID
-        if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.params.userId)) {
+        if (!isUUID(req.params.userId)) {
+            res.status(404).json({ error: 'Invalid UUID' });
+            return;
+        } 
+        const user = await getUserById(req.params.userId);
+        if (!user) {
+            res.status(404).json({ error: 'User not found' });
+            return;
+        }
+        const users = await getAllPostsByUserId(user.userId);
+        res.status(200).json(users);
+    } catch (err) {
+        next(err);
+    }
+});
+
+//Gets a post from a user
+router.get('/users/:userId/posts/:postId', verifyToken, async (req, res, next) => {
+    try {
+        //Check if userId is a valid UUID
+        if (!isUUID(req.params.userId)) {
+            res.status(404).json({ error: 'Invalid UUID' });
+            return;
+        } 
+        const user = await getUserById(req.params.userId);
+        if (!user) {
+            res.status(404).json({ error: 'User not found' });
+            return;
+        }
+
+        //Check if postId is a valid UUID
+        if (!isUUID(req.params.postId)) {
+            res.status(404).json({ error: 'Invalid UUID' });
+            return;
+        }
+        const post = await getPostByPostId(req.params.postId);
+        if (!post) {
+            res.status(404).json({ error: 'Post not found' });
+            return;
+        }
+        
+        res.status(200).json(post);
+    } catch (err) {
+        next(err);
+    }
+});
+
+//Creates an original post
+router.post('/users/:userId/posts', verifyToken, async (req, res, next) => {
+    try {
+        //Check if userId is a valid UUID
+        if (!isUUID(req.params.userId)) {
             res.status(404).json({ error: 'Invalid UUID' });
             return;
         } 
@@ -46,24 +130,16 @@ router.get('/users/:userId/posts', verifyToken, async (req, res, next) => {
             return;
         }
         
-        const users = await getAllPostsByUserId(user.userId);
-        res.json(users);
-    } catch (err) {
-        next(err);
-    }
-});
-
-//Creates a original post for a user
-router.post('/users/:userId/posts', verifyToken, async (req, res, next) => {
-    try {
-        //Check if userId is a valid UUID
-        if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.params.userId)) {
-            res.status(404).json({ error: 'Invalid UUID' });
+        if(!req.body.content){
+            res.status(400).json({ error: 'Content is required' });
             return;
-        } 
-        const user = await getUserById(req.params.userId);
-        if (!user) {
-            res.status(404).json({ error: 'User not found' });
+        }
+        if(req.body.content.length <= 0){
+            res.status(400).json({ error: 'Content is required' });
+            return;
+        }
+        if (typeof req.body.content !== 'string'){
+            res.status(400).json({ error: 'Content must be a string' });
             return;
         }
         
@@ -73,23 +149,47 @@ router.post('/users/:userId/posts', verifyToken, async (req, res, next) => {
             return;
         }
 
-        res.json(newPost);
+        res.status(201).json(newPost);
     } catch (err) {
         next(err);
     }
 });
 
-//Creates a reply to a post for a user
+//Creates a reply to a post
 router.post('/users/:userId/posts/:postId', verifyToken, async (req, res, next) => {
     try {
         //Check if userId is a valid UUID
-        if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.params.userId)) {
+        if (!isUUID(req.params.userId)) {
             res.status(404).json({ error: 'Invalid UUID' });
             return;
         } 
         const user = await getUserById(req.params.userId);
         if (!user) {
             res.status(404).json({ error: 'User not found' });
+            return;
+        }
+
+        //Check if postId is a valid UUID
+        if (!isUUID(req.params.postId)) {
+            res.status(404).json({ error: 'Invalid UUID' });
+            return;
+        }
+        const post = await getPostByPostId(req.params.postId);
+        if (!post) {
+            res.status(404).json({ error: 'Post not found' });
+            return;
+        }
+
+        if(!req.body.content){
+            res.status(400).json({ error: 'Content is required' });
+            return;
+        }
+        if(req.body.content.length <= 0){
+            res.status(400).json({ error: 'Content is required' });
+            return;
+        }
+        if (typeof req.body.content !== 'string'){
+            res.status(400).json({ error: 'Content must be a string' });
             return;
         }
         
@@ -99,7 +199,7 @@ router.post('/users/:userId/posts/:postId', verifyToken, async (req, res, next) 
             return;
         }
 
-        res.json(newPost);
+        res.status(201).json(newPost);
     } catch (err) {
         next(err);
     }
@@ -109,13 +209,37 @@ router.post('/users/:userId/posts/:postId', verifyToken, async (req, res, next) 
 router.put('/users/:userId/posts/:postId', verifyToken, async (req, res, next) => {
     try {
         //Check if userId is a valid UUID
-        if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.params.userId)) {
+        if (!isUUID(req.params.userId)) {
             res.status(404).json({ error: 'Invalid UUID' });
             return;
         } 
         const user = await getUserById(req.params.userId);
         if (!user) {
             res.status(404).json({ error: 'User not found' });
+            return;
+        }
+
+        //Check if postId is a valid UUID
+        if (!isUUID(req.params.postId)) {
+            res.status(404).json({ error: 'Invalid UUID' });
+            return;
+        }
+        const post = await getPostByPostId(req.params.postId);
+        if (!post) {
+            res.status(404).json({ error: 'Post not found' });
+            return;
+        }
+        
+        if(!req.body.content){
+            res.status(400).json({ error: 'Content is required' });
+            return;
+        }
+        if(req.body.content.length <= 0){
+            res.status(400).json({ error: 'Content is required' });
+            return;
+        }
+        if (typeof req.body.content !== 'string'){
+            res.status(400).json({ error: 'Content must be a string' });
             return;
         }
         
@@ -126,17 +250,27 @@ router.put('/users/:userId/posts/:postId', verifyToken, async (req, res, next) =
     }
 });
 
-//Delete a post for a user
+//Delete a post (will not delete replies)
 router.delete('/users/:userId/posts/:postId', verifyToken, async (req, res, next) => {
     try {
         //Check if userId is a valid UUID
-        if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.params.userId)) {
+        if (!isUUID(req.params.userId)) {
             res.status(404).json({ error: 'Invalid UUID' });
             return;
         } 
         const user = await getUserById(req.params.userId);
         if (!user) {
             res.status(404).json({ error: 'User not found' });
+            return;
+        }
+        //Check if postId is a valid UUID
+        if (!isUUID(req.params.postId)) {
+            res.status(404).json({ error: 'Invalid UUID' });
+            return;
+        }
+        const post = await getPostByPostId(req.params.postId);
+        if (!post) {
+            res.status(404).json({ error: 'Post not found' });
             return;
         }
         
@@ -147,17 +281,28 @@ router.delete('/users/:userId/posts/:postId', verifyToken, async (req, res, next
     }
 });
 
-//Gets the reactions for a post
+//Gets all reactions in a post
 router.get('/users/:userId/posts/:postId/reactions', verifyToken, async (req, res, next) => {
     try {
         //Check if userId is a valid UUID
-        if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.params.userId)) {
+        if (!isUUID(req.params.userId)) {
             res.status(404).json({ error: 'Invalid UUID' });
             return;
         } 
         const user = await getUserById(req.params.userId);
         if (!user) {
             res.status(404).json({ error: 'User not found' });
+            return;
+        }
+
+        //Check if postId is a valid UUID
+        if (!isUUID(req.params.postId)) {
+            res.status(404).json({ error: 'Invalid UUID' });
+            return;
+        }
+        const post = await getPostByPostId(req.params.postId);
+        if (!post) {
+            res.status(404).json({ error: 'Post not found' });
             return;
         }
         
@@ -167,3 +312,84 @@ router.get('/users/:userId/posts/:postId/reactions', verifyToken, async (req, re
         next(err);
     }
 });
+
+//Adds a reaction to a post
+router.post('/users/:userId/posts/:postId/reactions', verifyToken, async (req, res, next) => {
+    try {
+        //Check if userId is a valid UUID
+        if (!isUUID(req.params.userId)) {
+            res.status(404).json({ error: 'Invalid UUID' });
+            return;
+        } 
+        const user = await getUserById(req.params.userId);
+        if (!user) {
+            res.status(404).json({ error: 'User not found' });
+            return;
+        }
+
+        if(!req.body.type){
+            res.status(400).json({ error: 'Type is required' });
+            return;
+        }
+        if (typeof req.body.content !== 'string'){
+            res.status(400).json({ error: 'Type must be a string' });
+            return;
+        }
+        //Can be changed when we need more reaction types
+        if (req.body.type !== 'like' && req.body.type !== 'dislike'){
+            res.status(400).json({ error: 'Type must be either like or dislike' });
+            return;
+        }
+        
+        const reactions = await createReactionOnPost(user.userId, req.params.postId, req.body.type);
+        res.json(reactions);
+    } catch (err) {
+        next(err);
+    }
+});
+
+//Deletes a reaction to a post
+router.delete('/users/:userId/posts/:postId/reactions/:reactionId', verifyToken, async (req, res, next) => {
+    try {
+        //Check if userId is a valid UUID
+        if (!isUUID(req.params.userId)) {
+            res.status(404).json({ error: 'Invalid UUID' });
+            return;
+        } 
+        const user = await getUserById(req.params.userId);
+        if (!user) {
+            res.status(404).json({ error: 'User not found' });
+            return;
+        }
+
+        //Check if postId is a valid UUID
+        if (!isUUID(req.params.postId)) {
+            res.status(404).json({ error: 'Invalid UUID' });
+            return;
+        }
+        const post = await getPostByPostId(req.params.postId);
+        if (!post) {
+            res.status(404).json({ error: 'Post not found' });
+            return;
+        }
+
+        //Check if reactionId is a valid UUID
+        if (!isUUID(req.params.reactionId)) {
+            res.status(404).json({ error: 'Invalid UUID' });
+            return;
+        }
+        const reaction = await getUserReactionsOnPost(user.userId, req.params.postId);
+        if (!reaction) {
+            res.status(404).json({ error: 'Reaction not found' });
+            return;
+        }
+
+        const deletedReaction = await deleteReactionOnPost(user.userId, req.params.postId);
+        
+        res.json(deletedReaction);
+    } catch (err) {
+        next(err);
+    }
+});
+
+export default router;

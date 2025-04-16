@@ -2,6 +2,7 @@ import express, { NextFunction, Request, Response } from 'express';
 import VError from 'verror';
 import { migrateToLatest } from "./db/migrate.js";
 import usersRouter from './routes/users.js';
+import postsRouter from './routes/posts.js';
 
 await migrateToLatest();
 
@@ -10,6 +11,7 @@ export const app = express();
 app.use(express.json());
 
 app.use('/api/v1', usersRouter);
+app.use('/api/v1', postsRouter);
 
 // Error handling middleware (stolen from assignment 2)
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
