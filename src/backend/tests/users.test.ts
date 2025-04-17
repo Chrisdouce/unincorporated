@@ -1,15 +1,27 @@
-import test, { before, describe } from "node:test";
+import test, { after, before, describe } from "node:test";
 import supertest from 'supertest';
 import { app } from "../index.js";
 import assert from "node:assert/strict";
 import 'dotenv/config';
-import { getAllFriendsByUserId, getUserByUsername } from "../repositories/users.js";
+import { getAllUsers, getUserByUsername } from "../repositories/users.js";
 import jwt from 'jsonwebtoken';
-import { get } from "node:http";
 
 const request = supertest(app);
 
 describe('User routes', () => {
+    after(async () => {
+        // Clean up test users
+        const user = await getUserByUsername('testuser');
+        if (!user) {
+            assert.fail('User not found');
+        }
+        await request.delete(`/api/v1/users/${user.userId}`).send();
+        const users = await getAllUsers();
+        if(users && users.length > 0){
+            assert.fail('Users still exist in the database');
+        }
+    });
+
     test('GET /users returns an empty array', async () => {
         const res = await request.get('/api/v1/users').send();
         assert.strictEqual(res.status, 200);
@@ -194,6 +206,36 @@ describe('User routes', () => {
 });
 
 describe('Friend routes', () => {
+    before(async () => {
+        // Create a test user
+        let res = await request.post('/api/v1/users').send({
+            username: 'testuser',
+            password: 'password123'
+        });
+        assert.strictEqual(res.status, 201);
+        const fetchedUser = await getUserByUsername('testuser');
+        if (!fetchedUser) {
+            assert.fail('User not found');
+        }
+    });
+    
+    after(async () => {
+        const user = await getUserByUsername('testuser');
+        if (!user) {
+            assert.fail('User not found');
+        }
+        await request.delete(`/api/v1/users/${user.userId}`).send();
+        const user2 = await getUserByUsername('testuser2');
+        if (!user2) {
+            assert.fail('User not found');
+        }
+        await request.delete(`/api/v1/users/${user2.userId}`).send();
+        const users = await getAllUsers();
+        if(users && users.length > 0){
+            assert.fail('Users still exist in the database');
+        }
+    });
+
     test('GET /users/:userId/friends returns an empty array', async () => {
         const user = await getUserByUsername('testuser');
         if (!user) {
