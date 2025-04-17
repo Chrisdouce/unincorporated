@@ -9,6 +9,12 @@ export type Post = {
     updatedAt: Date;
 };
 
+export type Reaction = {
+    postId: string;
+    userId: string;
+    type: string;
+};
+
 export async function getAllPosts(): Promise<Post[]> {
     return await db
         .selectFrom('post')
@@ -123,7 +129,7 @@ export async function deleteAllPostsByUserId(userId: string) {
     return deletedPosts;
 }
 
-export async function getUserReactionsOnPost(userId: string, postId: string) {
+export async function getUserReactionsOnPost(userId: string, postId: string): Promise<Reaction[]> {
     return await db
         .selectFrom('reaction')
         .selectAll()
@@ -132,7 +138,7 @@ export async function getUserReactionsOnPost(userId: string, postId: string) {
         .execute();
 }
 
-export async function createReactionOnPost(userId: string, postId: string, type: string) {
+export async function createReactionOnPost(userId: string, postId: string, type: string): Promise<Reaction> {
     const createdReaction = await db.transaction().execute(async (trx) => {
         return await trx
             .insertInto('reaction')
@@ -148,14 +154,27 @@ export async function createReactionOnPost(userId: string, postId: string, type:
     return createdReaction;
 }
 
-export async function deleteReactionOnPost(userId: string, postId: string) {
+export async function updateReactionOnPost(userId: string, postId: string, type: string): Promise<Reaction> {
+    const updatedReaction = await db.transaction().execute(async (trx) => {
+        return await trx
+            .updateTable('reaction')
+            .set({ type: type })
+            .where('postId', '=', postId)
+            .where('userId', '=', userId)
+            .returning(['postId', 'userId', 'type'])
+            .executeTakeFirstOrThrow();
+    });
+    return updatedReaction;
+}
+
+export async function deleteReactionOnPost(userId: string, postId: string): Promise<Reaction> {
     const deletedReaction = await db.transaction().execute(async (trx) => {
         return await trx
             .deleteFrom('reaction')
             .where('postId', '=', postId)
             .where('userId', '=', userId)
             .returning(['postId', 'userId', 'type'])
-            .execute();
+            .executeTakeFirstOrThrow();
     });
     return deletedReaction;
 }
