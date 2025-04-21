@@ -8,6 +8,11 @@ export type User = {
     updatedAt: Date;
 };
 
+export type Friend = {
+    friendAId: string;
+    friendBId: string;
+}
+
 export async function getAllUsers(): Promise<Omit<User, 'hashedPassword'>[] | null> {
     const users = await db
         .selectFrom('user')
@@ -126,7 +131,7 @@ export async function getFriendByUserId(userId: string, friendId: string): Promi
     return friend || null;
 }
 
-export async function addFriend(friendAId: string, friendBId: string) {
+export async function addFriend(friendAId: string, friendBId: string): Promise<Friend> {
     const friend = await db.transaction().execute(async (trx) => {
         return await trx
             .insertInto('friend')
@@ -141,7 +146,7 @@ export async function addFriend(friendAId: string, friendBId: string) {
     return friend;
 }
 
-export async function removeFriend(userId: string, friendId: string) {
+export async function removeFriend(userId: string, friendId: string): Promise<Friend> {
     const friend = await db.transaction().execute(async (trx) => {
         let deletedFriend = await trx
             .deleteFrom('friend')
