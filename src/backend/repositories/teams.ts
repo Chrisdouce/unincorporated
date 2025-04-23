@@ -10,10 +10,11 @@ export type Team = {
 };
 
 export async function getAllTeams(): Promise<Team[]> {
-    return await db
+    const teams = await db
         .selectFrom('team')
         .selectAll()
         .execute();
+    return teams;
 }
 
 export async function getTeamByTeamId(teamId: string): Promise<Team | null> {
@@ -52,17 +53,16 @@ export async function createTeam(team: Omit<Team, 'teamId' | 'createdAt' | 'upda
     return createdTeam;
 }
 
-export async function updateTeam(team: Omit<Team, 'userId' | 'teamId' | 'createdAt' | 'updatedAt'>): Promise<Team>{
+export async function updateTeam(team: Omit<Team, 'userId' | 'createdAt' | 'updatedAt'>): Promise<Team>{
     const updatedTeam = await db.transaction().execute(async (trx) => {
         const updatedTeam = await trx
             .updateTable('team')
-            .where('teamId', '=', 'team.teamId')
             .set({
                 name: team.name,
                 characters: team.characters,
-                createdAt: new Date(),
                 updatedAt: new Date()
             })
+            .where('teamId', '=', team.teamId)
             .returning(['teamId', 'userId', 'name', 'characters', 'createdAt', 'updatedAt'])
             .executeTakeFirstOrThrow();
         return updatedTeam;
