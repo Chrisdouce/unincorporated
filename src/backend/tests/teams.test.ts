@@ -42,6 +42,12 @@ describe('Team routes', () => {
         }
     });
 
+    test('GET /characters returns all characters allowed in teams', async () => {
+        let res = await request.get(`/api/v1/characters`).send();
+        assert.strictEqual(res.status, 200);
+        assert.ok(res.body.length > 0);
+    });
+
     test('GET /users/:userId/teams returns an empty array', async () => {
         let res = await request.get(`/api/v1/users/${user.userId}/teams`).set('Authorization', `Bearer ${token}`).send();
         assert.strictEqual(res.status, 200);
