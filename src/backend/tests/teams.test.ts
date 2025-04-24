@@ -45,7 +45,7 @@ describe('Team routes', () => {
     test('GET /characters returns all characters allowed in teams', async () => {
         let res = await request.get(`/api/v1/characters`).send();
         assert.strictEqual(res.status, 200);
-        assert.ok(res.body.length > 0);
+        assert.ok(res.body.playableMarvelRivalsCharacters.length > 0);
     });
 
     test('GET /users/:userId/teams returns an empty array', async () => {
