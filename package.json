@@ -8,7 +8,7 @@
     "backend": "set 'APP_ENV=development' && set 'NODE_ENV=development' && tsx watch --clear-screen=false ./src/backend/index.ts",
     "test-backend": "tsx ./src/backend/tests/setup.ts && set APP_ENV=test&& tsx --test --test-concurrency=1 ./src/backend/tests/*.test.ts",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 5000",
     "lint": "next lint"
   },
   "dependencies": {
