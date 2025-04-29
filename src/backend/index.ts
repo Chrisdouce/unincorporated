@@ -16,7 +16,6 @@ app.use('/api/v1', postsRouter);
 app.use('/api/v1', teamsRouter)
 
 // Error handling middleware (stolen from assignment 2)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     const info = VError.info(err);
     res.status(info?.statusCode ?? 500).json({ error: info?.response ?? 'Internal Server Error' });
