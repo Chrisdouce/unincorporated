@@ -16,48 +16,47 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('reputation', 'integer', col => col.notNull().defaultTo(0))
     .addColumn('lastDailyRewardClaimedAt', 'timestamp')
     .addColumn('claimedTeamReward', 'boolean', col => col.defaultTo(false).notNull())
-    .addColumn('createdAt', 'datetime', col => col.notNull().defaultTo(sql`now()`))
-    .addColumn('updatedAt', 'datetime', col => col.notNull().defaultTo(sql`now()`));
+    .addColumn('createdAt', 'timestamp', col => col.notNull().defaultTo(sql`now()`))
+    .addColumn('updatedAt', 'timestamp', col => col.notNull().defaultTo(sql`now()`))
+    .execute();
 
   // Post table
   await db.schema.createTable('Post')
     .addColumn('id', 'uuid', col => col.notNull().primaryKey().defaultTo(sql`gen_random_uuid()`))
-    .addColumn('createdAt', 'datetime', col => col.notNull().defaultTo(sql`now()`))
-    .addColumn('updatedAt', 'datetime', col => col.notNull().defaultTo(sql`now()`))
+    .addColumn('createdAt', 'timestamp', col => col.notNull().defaultTo(sql`now()`))
+    .addColumn('updatedAt', 'timestamp', col => col.notNull().defaultTo(sql`now()`))
     .addColumn('desc', 'varchar(255)')
     .addColumn('img', 'text')
     .addColumn('imgHeight', 'integer')
     .addColumn('video', 'text')
     .addColumn('isSensitive', 'boolean', col => col.defaultTo(false).notNull())
-    .addColumn('userId', 'text', col => col.notNull().references('User.id'))
-    .addColumn('rePostId', 'integer')
-    .addColumn('parentPostId', 'integer')
-    .addForeignKeyConstraint('fk_repost', ['rePostId'], 'Post', ['id'])
-    .addForeignKeyConstraint('fk_parentPost', ['parentPostId'], 'Post', ['id'])
+    .addColumn('userId', 'uuid', col => col.notNull().references('User.id').onUpdate('cascade').onDelete('cascade'))
+    .addColumn('rePostId', 'uuid', col => col.references('Post.id').onUpdate('cascade').onDelete('cascade'))
+    .addColumn('parentPostId', 'uuid', col => col.references('Post.id').onUpdate('cascade').onDelete('cascade'))
     .execute();
 
   // Like table
   await db.schema.createTable('Like')
-    .addColumn('id', 'serial', col => col.notNull().primaryKey().defaultTo(sql`gen_random_uuid()`))
+    .addColumn('id', 'uuid', col => col.notNull().primaryKey().defaultTo(sql`gen_random_uuid()`))
     .addColumn('createdAt', 'timestamp', col => col.defaultTo(sql`now()`).notNull())
-    .addColumn('userId', 'text', col => col.notNull().references('User.id'))
-    .addColumn('postId', 'integer', col => col.notNull().references('Post.id'))
+    .addColumn('userId', 'uuid', col => col.notNull().references('User.id').onUpdate('cascade').onDelete('cascade'))
+    .addColumn('postId', 'uuid', col => col.notNull().references('Post.id').onUpdate('cascade').onDelete('cascade'))
     .execute();
     
   // SavedPosts table
   await db.schema.createTable('SavedPosts')
-    .addColumn('id', 'uuid', col => col.notNull().autoIncrement().primaryKey().defaultTo(sql`gen_random_uuid()`))
+    .addColumn('id', 'uuid', col => col.notNull().primaryKey().defaultTo(sql`gen_random_uuid()`))
     .addColumn('createdAt', 'timestamp', col => col.defaultTo(sql`now()`).notNull())
-    .addColumn('userId', 'text', col => col.notNull().references('User.id'))
-    .addColumn('postId', 'integer', col => col.notNull().references('Post.id'))
+    .addColumn('userId', 'uuid', col => col.notNull().references('User.id').onUpdate('cascade').onDelete('cascade'))
+    .addColumn('postId', 'uuid', col => col.notNull().references('Post.id').onUpdate('cascade').onDelete('cascade'))
     .execute();
 
   // Follow table
   await db.schema.createTable('Follow')
-    .addColumn('id', 'uuid', col => col.notNull().autoIncrement().primaryKey().defaultTo(sql`gen_random_uuid()`))
+    .addColumn('id', 'uuid', col => col.notNull().primaryKey().defaultTo(sql`gen_random_uuid()`))
     .addColumn('createdAt', 'timestamp', col => col.defaultTo(sql`now()`).notNull())
-    .addColumn('followerId', 'text', col => col.notNull().references('User.id'))
-    .addColumn('followingId', 'text', col => col.notNull().references('User.id'))
+    .addColumn('followerId', 'uuid', col => col.notNull().references('User.id').onUpdate('cascade').onDelete('cascade'))
+    .addColumn('followingId', 'uuid', col => col.notNull().references('User.id').onUpdate('cascade').onDelete('cascade'))
     .execute();
   
   // Role Type
@@ -73,9 +72,9 @@ export async function up(db: Kysely<any>): Promise<void> {
 
   // Team table
   await db.schema.createTable('Team')
-    .addColumn('id', 'text', col => col.primaryKey())
+    .addColumn('id', 'uuid', col => col.notNull().primaryKey().defaultTo(sql`gen_random_uuid()`))
     .addColumn('name', 'text', col => col.notNull().unique())
-    .addColumn('leaderId', 'text', col => col.notNull().unique().references('User.id').onDelete('cascade'))
+    .addColumn('leaderId', 'uuid', col => col.notNull().unique().references('User.id').onDelete('cascade'))
     .addColumn('whitelist', 'jsonb', col => col.defaultTo(sql`'[]'::jsonb`).notNull())
     .addColumn('createdAt', 'timestamp', col => col.defaultTo(sql`now()`).notNull())
     .addColumn('updatedAt', 'timestamp', col => col.defaultTo(sql`now()`).notNull())
@@ -89,15 +88,14 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute();
   
   // Team Member table
-  await db.schema
-    .createTable('TeamMember')
-    .addColumn('id', 'text', col => col.primaryKey())
-    .addColumn('teamId', 'text', col => col.notNull().references('Team.id').onDelete('cascade'))
-    .addColumn('userId', 'text', col => col.notNull().references('User.id').onDelete('cascade'))
+  await db.schema.createTable('TeamMember')
+    .addColumn('id', 'uuid', col => col.notNull().primaryKey().defaultTo(sql`gen_random_uuid()`))
+    .addColumn('teamId', 'uuid', col => col.notNull().references('Team.id').onUpdate('cascade').onDelete('cascade'))
+    .addColumn('userId', 'uuid', col => col.notNull().references('User.id').onUpdate('cascade').onDelete('cascade'))
     .addColumn('createdAt', 'timestamp', col => col.defaultTo(sql`now()`).notNull())
     .addColumn('updatedAt', 'timestamp', col => col.defaultTo(sql`now()`).notNull())
     .addUniqueConstraint('UserUniqueTeamMembership', ['userId'])
-      .execute();
+    .execute();
   
   // Create index for TeamMember table
   await db.schema
@@ -109,9 +107,9 @@ export async function up(db: Kysely<any>): Promise<void> {
   //Team Invitation table
   await db.schema
     .createTable('TeamInvitation')
-    .addColumn('id', 'text', col => col.primaryKey())
-    .addColumn('teamId', 'text', col => col.notNull().references('Team.id').onDelete('cascade'))
-    .addColumn('invitedUserId', 'text', col => col.notNull().references('User.id').onDelete('cascade'))
+    .addColumn('id', 'uuid', col => col.notNull().primaryKey().defaultTo(sql`gen_random_uuid()`))
+    .addColumn('teamId', 'uuid', col => col.notNull().references('Team.id').onUpdate('cascade').onDelete('cascade'))
+    .addColumn('invitedUserId', 'uuid', col => col.notNull().references('User.id').onUpdate('cascade').onDelete('cascade'))
     .addColumn('status', 'text', col => col.defaultTo('PENDING').notNull())
     .addColumn('createdAt', 'timestamp', col => col.defaultTo(sql`now()`).notNull())
     .addUniqueConstraint('unique_invitation', ['teamId', 'invitedUserId'])
@@ -132,9 +130,9 @@ export async function up(db: Kysely<any>): Promise<void> {
   // Reputation Vote table
   await db.schema
     .createTable('ReputationVote')
-    .addColumn('id', 'text', col => col.primaryKey())
-    .addColumn('voterId', 'text', col => col.notNull().references('User.id').onDelete('cascade'))
-    .addColumn('targetUserId', 'text', col => col.notNull().references('User.id').onDelete('cascade'))
+    .addColumn('id', 'uuid', col => col.notNull().primaryKey().defaultTo(sql`gen_random_uuid()`))
+    .addColumn('voterId', 'uuid', col => col.notNull().references('User.id').onUpdate('cascade').onDelete('cascade'))
+    .addColumn('targetUserId', 'uuid', col => col.notNull().references('User.id').onUpdate('cascade').onDelete('cascade'))
     .addColumn('voteType', 'text', col => col.notNull())
     .addColumn('createdAt', 'timestamp', col => col.defaultTo(sql`now()`).notNull())
     .addUniqueConstraint('unique_vote', ['voterId', 'targetUserId'])
