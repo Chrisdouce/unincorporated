@@ -26,6 +26,7 @@ export type GroupTable = {
     groupId: Generated<string>;
     leaderId: ColumnType<string, string, undefined>;
     name: string;
+    description: string;
     type: string;
     createdAt: Date;
     updatedAt: Date;

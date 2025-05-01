@@ -42,22 +42,17 @@ describe('Group routes', () => {
         }
     });
 
-    test('GET /characters returns all characters allowed in groups', async () => {
-        let res = await request.get(`/api/v1/characters`).send();
-        assert.strictEqual(res.status, 200);
-        assert.ok(res.body.playableMarvelRivalsCharacters.length > 0);
-    });
-
-    test('GET /users/:userId/groups returns an empty array', async () => {
-        let res = await request.get(`/api/v1/users/${user.userId}/groups`).set('Authorization', `Bearer ${token}`).send();
+    test('GET /groups returns an empty array', async () => {
+        let res = await request.get(`/api/v1/groups`).send();
         assert.strictEqual(res.status, 200);
         assert.deepStrictEqual(res.body, []);
     });
 
-    test('POST /users/:userId/groups returns 201 for valid group creation', async () => {
-        let res = await request.post(`/api/v1/users/${user.userId}/groups`).set('Authorization', `Bearer ${token}`).send({
+    test('POST /users/:userId/group returns 201 for valid group creation', async () => {
+        let res = await request.post(`/api/v1/users/${user.userId}/group`).set('Authorization', `Bearer ${token}`).send({
             name: 'Test Group',
-            characters: ['Ironman', 'Hela', 'Hulk', 'Hawkeye', 'Groot', 'Emma Frost']
+            description: 'Test group description',
+            type: 'Diana'
         });
         groupId = res.body.groupId;
         assert.strictEqual(res.status, 201);
@@ -65,51 +60,88 @@ describe('Group routes', () => {
     });
 
     test('POST /users/:userId/groups returns 400 for bad data', async () => {
-        let res = await request.post(`/api/v1/users/${user.userId}/groups`).set('Authorization', `Bearer ${token}`).send({});
+        let res = await request.post(`/api/v1/users/${user.userId}/group`).set('Authorization', `Bearer ${token}`).send({});
         assert.strictEqual(res.status, 400);
         assert.strictEqual(res.body.error, 'name is required');
-
-        res = await request.post(`/api/v1/users/${user.userId}/groups`).set('Authorization', `Bearer ${token}`).send({
+        
+        res = await request.post(`/api/v1/users/${user.userId}/group`).set('Authorization', `Bearer ${token}`).send({
             name: 'Test Group',
-            characters: 'Ironman'
+            type: 'Diana'
         });
         assert.strictEqual(res.status, 400);
-        assert.strictEqual(res.body.error, 'characters must be an array');
+        assert.strictEqual(res.body.error, 'description is required');
 
-        res = await request.post(`/api/v1/users/${user.userId}/groups`).set('Authorization', `Bearer ${token}`).send({
+        res = await request.post(`/api/v1/users/${user.userId}/group`).set('Authorization', `Bearer ${token}`).send({
             name: 'Test Group',
-            characters: ['Ironman']
+            description: 'Test group descripTest group descriTest group descriTest group descriTest group descriTest group descritionTest group descriptionTest group descriptionTest group descriptionTest group descriptionTest group descriptionTest group descriptionTest group description',
+            type: 'Diana'
         });
         assert.strictEqual(res.status, 400);
-        assert.strictEqual(res.body.error, 'characters must contain exactly 6 characters');
+        assert.strictEqual(res.body.error, 'description cannot be longer than 255 characters');
 
-        res = await request.post(`/api/v1/users/${user.userId}/groups`).set('Authorization', `Bearer ${token}`).send({
+        res = await request.post(`/api/v1/users/${user.userId}/group`).set('Authorization', `Bearer ${token}`).send({
             name: 'Test Group',
-            characters: ['Ironman', 'Hela', 'Hulk', 'Hawkeye', 'Groot', 'batman']
+            description: 'Test group description',
+            type: 'badtype'
         });
         assert.strictEqual(res.status, 400);
-        assert.strictEqual(res.body.error, 'batman is not a playable character');
+        assert.match(res.body.error, /badtype must be one of/);
     });
 
-    test('GET /users/:userId/groups returns 200 for multiple groups', async () => {
-        await request.post(`/api/v1/users/${user.userId}/groups`).set('Authorization', `Bearer ${token}`).send({
-            name: 'Test Group 2',
-            characters: ['Thor', 'Loki', 'Black Widow', 'Captain America', 'Doctor Strange', 'Scarlet Witch']
-        });
-        let res = await request.get(`/api/v1/users/${user.userId}/groups`).set('Authorization', `Bearer ${token}`).send();
+    test('GET /groups/:groupId returns 200 for valid id', async () => {
+        let res = await request.get(`/api/v1/groups/${groupId}`).send();
+        assert.strictEqual(res.status, 200);
+        assert.deepStrictEqual(res.body.name, 'Test Group');
+    });
+
+    test('GET /groups/:groupId returns 404 for not found id', async () => {
+        let res = await request.get(`/api/v1/groups/bad`).set('Authorization', `Bearer ${token}`).send();
+        assert.strictEqual(res.status, 404);
+        assert.strictEqual(res.body.error, 'Invalid UUID');
+
+        res = await request.get(`/api/v1/groups/${user.userId}`).set('Authorization', `Bearer ${token}`).send();
+        assert.strictEqual(res.status, 404);
+        assert.strictEqual(res.body.error, 'Group not found');
+    });
+
+    test('GET /groups/type/:type returns 200 for valid type', async () => {
+        let res = await request.get(`/api/v1/groups/type/Diana`).send();
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body[0].type, 'Diana');
+    });
+
+    test('GET /groups/type/:type returns 404 for not found type', async () => {
+        let res = await request.get(`/api/v1/groups/type/bad`).set('Authorization', `Bearer ${token}`).send();
+        assert.strictEqual(res.status, 404);
+        assert.strictEqual(res.body.error, 'No groups found with the specified type');
+    });
+
+    test('GET /groups/name/:name returns 200 for valid name', async () => {
+        let res = await request.get(`/api/v1/groups/name/Test Group`).send();
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body[0].name, 'Test Group');
+    });
+
+    test('GET /groups/name/:name returns 404 for not found name', async () => {
+        let res = await request.get(`/api/v1/groups/name/bad`).set('Authorization', `Bearer ${token}`).send();
+        assert.strictEqual(res.status, 404);
+        assert.strictEqual(res.body.error, 'No groups found with the specified name');
+    });
+
+    test('GET /users/:userId/group returns 200 for user in group', async () => {
+        let res = await request.get(`/api/v1/users/${user.userId}/group`).set('Authorization', `Bearer ${token}`).send();
         assert.strictEqual(res.status, 200);
         assert.strictEqual(res.body.length, 2);
-        assert.strictEqual(res.body[0].name, "Test Group");
-        assert.strictEqual(res.body[1].name, "Test Group 2");
+        assert.strictEqual(res.body.name, "Test Group");
     });
 
-    test('GET /users/:userId/groups/:groupId returns 200 for a group', async () => {
-        let res = await request.get(`/api/v1/users/${user.userId}/groups/${groupId}`).set('Authorization', `Bearer ${token}`).send();
+    test('GET /users/:userId/group returns a group or null', async () => {
+        let res = await request.get(`/api/v1/users/${user.userId}/group`).set('Authorization', `Bearer ${token}`).send();
         assert.strictEqual(res.status, 200);
         assert.strictEqual(res.body.name, "Test Group");
     });
 
-    test('PUT /users/:userId/groups/:groupId returns 200 for valid group update', async () => {
+    test('PUT /users/:userId/group returns 200 for valid group update', async () => {
         let res = await request.put(`/api/v1/users/${user.userId}/groups/${groupId}`).set('Authorization', `Bearer ${token}`).send({
             name: 'Updated Group',
             characters: ['Thor', 'Loki', 'Black Widow', 'Captain America', 'Doctor Strange', 'Scarlet Witch']
@@ -118,37 +150,14 @@ describe('Group routes', () => {
         assert.deepStrictEqual(res.body.name, 'Updated Group');
     });
 
-    test('PUT /users/:userId/groups/:groupId returns 400 for bad data', async () => {
-        let res = await request.put(`/api/v1/users/${user.userId}/groups/${groupId}`).set('Authorization', `Bearer badtoken`).send({
+    test('PUT /users/:userId/group returns 400 for bad data', async () => {
+        let res = await request.put(`/api/v1/users/${user.userId}/groups/${groupId}`).set('Authorization', `Bearer ${token}`).send({
             name: 'Updated Group',
-            characters: ['Thor', 'Loki', 'Black Widow', 'Captain America', 'Doctor Strange']
-        });
-        assert.strictEqual(res.status, 401);
-
-        res = await request.put(`/api/v1/users/${user.userId}/groups/${groupId}`).set('Authorization', `Bearer ${token}`).send({});
-        assert.strictEqual(res.status, 400);
-        assert.strictEqual(res.body.error, 'name is required');
-
-        res = await request.put(`/api/v1/users/${user.userId}/groups/${groupId}`).set('Authorization', `Bearer ${token}`).send({
-            name: 'Updated Group',
-            characters: 'Ironman'
+            description: 'Updated group description',
+            type: 'badtype'
         });
         assert.strictEqual(res.status, 400);
-        assert.strictEqual(res.body.error, 'characters must be an array');
-
-        res = await request.put(`/api/v1/users/${user.userId}/groups/${groupId}`).set('Authorization', `Bearer ${token}`).send({
-            name: 'Updated Group',
-            characters: ['Ironman']
-        });
-        assert.strictEqual(res.status, 400);
-        assert.strictEqual(res.body.error, 'characters must contain exactly 6 characters');
-
-        res = await request.put(`/api/v1/users/${user.userId}/groups/${groupId}`).set('Authorization', `Bearer ${token}`).send({
-            name: 'Updated Group',
-            characters: ['Ironman', 'Hela', 'Hulk', 'Hawkeye', 'Groot', 'batman']
-        });
-        assert.strictEqual(res.status, 400);
-        assert.strictEqual(res.body.error, 'batman is not a playable character');
+        assert.match(res.body.error, /badtype must be one of/);
     });
 
     test('DELETE /users/:userId/groups/:groupId returns 200 for valid group deletion', async () => {

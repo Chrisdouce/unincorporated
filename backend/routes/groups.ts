@@ -2,9 +2,11 @@ import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 import { getUserById } from '../repositories/users';
-import { createGroup, deleteGroup, getAllGroupsByUserId, getGroupByGroupId, updateGroup } from '../repositories/groups';
+import { createGroup, deleteGroup, getGroupByLeaderId, getGroupByGroupId, updateGroup, getAllGroupsByName, getAllGroups } from '../repositories/groups';
+import { getAllGroupsByType } from '../repositories/groups';
 
 const router = express.Router();
+const allowedTypes = ['Diana', 'Kuudra', 'Dungeons', 'Fishing', 'Other'];
 
 //Verify the JWT token for a user
 function verifyToken(req: Request, res: Response, next: NextFunction) {
@@ -36,18 +38,9 @@ function isUUID(uuid: string) {
 }
 
 //Gets all groups
-router.get('/users/:userId/groups', verifyToken, async (req, res, next) => {
+router.get('/groups', async (req, res, next) => {
     try {
-        if(!isUUID(req.params.userId)){
-            res.status(404).json({ error: 'Invalid UUID' })
-            return;
-        }
-        const user = await getUserById(req.params.userId);
-        if (!user) {
-            res.status(404).json({ error: 'User not found' });
-            return;
-        }
-        const groups = await getAllGroupsByUserId(req.params.userId);
+        const groups = await getAllGroups();
         res.status(200).json(groups);
     } catch (err) {
         next(err);
@@ -55,17 +48,8 @@ router.get('/users/:userId/groups', verifyToken, async (req, res, next) => {
 });
 
 //Gets a group by ID
-router.get('/users/:userId/groups/:groupId', verifyToken, async (req, res, next) => {
+router.get('/groups/:groupId', async (req, res, next) => {
     try {
-        if(!isUUID(req.params.userId)){
-            res.status(404).json({ error: 'Invalid UUID' })
-            return;
-        }
-        const user = await getUserById(req.params.userId);
-        if (!user) {
-            res.status(404).json({ error: 'User not found' });
-            return;
-        }
         if(!isUUID(req.params.groupId)){
             res.status(404).json({ error: 'Invalid UUID' })
             return;
@@ -81,8 +65,69 @@ router.get('/users/:userId/groups/:groupId', verifyToken, async (req, res, next)
     }
 });
 
+//Gets all groups with a certain type
+router.get('/groups/type/:type', async (req, res, next) => {
+    try {
+        const groupType = req.params.type;
+        if (!groupType) {
+            res.status(400).json({ error: 'Type is required' });
+            return;
+        }
+        const groups = await getAllGroupsByType(groupType);
+        if (!groups || groups.length === 0) {
+            res.status(404).json({ error: 'No groups found with the specified type' });
+            return;
+        }
+        res.status(200).json(groups);
+    } catch (err) {
+        next(err);
+    }
+});
+
+//Gets all groups by name
+router.get('/groups/name/:name', async (req, res, next) => {
+    try {
+        const groupName = req.params.name;
+        if (!groupName) {
+            res.status(400).json({ error: 'Name is required' });
+            return;
+        }
+        const groups = await getAllGroupsByName(groupName);
+        if (!groups || groups.length === 0) {
+            res.status(404).json({ error: 'No groups found with the specified name' });
+            return;
+        }
+        res.status(200).json(groups);
+    } catch (err) {
+        next(err);
+    }
+});
+
+/*
+    Leader group Routes
+*/
+
+//Gets group for a user if they are in a group
+router.get('/users/:userId/group', verifyToken, async (req, res, next) => {
+    try {
+        if(!isUUID(req.params.userId)){
+            res.status(404).json({ error: 'Invalid UUID' })
+            return;
+        }
+        const user = await getUserById(req.params.userId);
+        if (!user) {
+            res.status(404).json({ error: 'User not found' });
+            return;
+        }
+        const group = await getGroupByLeaderId(req.params.userId);
+        res.status(200).json(group);
+    } catch (err) {
+        next(err);
+    }
+});
+
 //Creates a new group
-router.post('/users/:userId/groups', verifyToken, async (req, res, next) => {
+router.post('/users/:userId/group', verifyToken, async (req, res, next) => {
     try {
         if(!isUUID(req.params.userId)){
             res.status(404).json({ error: 'Invalid UUID' })
@@ -94,10 +139,6 @@ router.post('/users/:userId/groups', verifyToken, async (req, res, next) => {
             return;
         }
         const group = req.body;
-        if (!group) {
-            res.status(400).json({ error: 'group is required' });
-            return;
-        }
         if (!group.name) {
             res.status(400).json({ error: 'name is required' });
             return;
@@ -106,31 +147,29 @@ router.post('/users/:userId/groups', verifyToken, async (req, res, next) => {
             res.status(400).json({ error: 'type is required' });
             return;
         }
-        if (group.type.length !== 6) {
-            res.status(400).json({ error: 'type must contain exactly 6 type' });
+        if(!group.description){
+            res.status(400).json({ error: 'description is required' });
             return;
         }
-        if (group.type.some((character: string) => typeof character !== 'string')) {
-            res.status(400).json({ error: 'type array must contain only strings' });
+        if (group.description.length > 255) {
+            res.status(400).json({ error: 'description cannot be longer than 255 characters' });
             return;
         }
-        
-        const characterSet = new Set(group.type);
-        if (characterSet.size !== group.type.length) {
-            res.status(400).json({ error: 'groups must not contain duplicate type' });
+        if (!allowedTypes.includes(group.type)) {
+            res.status(400).json({ error: `${group.type} must be one of ${allowedTypes.join(', ')}` });
             return;
         }
 
-        group.userId = req.params.userId;
+        group.leaderId = req.params.userId;
         const createdGroup = await createGroup(group);
         res.status(201).json(createdGroup);
-    } catch (err) {
+        } catch (err){
         next(err);
     }
 });
 
 //Updates a group
-router.put('/users/:userId/groups/:groupId', verifyToken, async (req, res, next) => {
+router.put('/users/:userId/group', verifyToken, async (req, res, next) => {
     try {
         if(!isUUID(req.params.userId)){
             res.status(404).json({ error: 'Invalid UUID' })
@@ -149,10 +188,6 @@ router.put('/users/:userId/groups/:groupId', verifyToken, async (req, res, next)
             return;
         }
         const newGroup = req.body;
-        if (!newGroup) {
-            res.status(404).json({ error: 'Group not found' });
-            return;
-        }
         if (!newGroup.name) {
             res.status(400).json({ error: 'name is required' });
             return;
@@ -172,7 +207,7 @@ router.put('/users/:userId/groups/:groupId', verifyToken, async (req, res, next)
 
         const characterSet = new Set(newGroup.type);
         if (characterSet.size !== newGroup.type.length) {
-            res.status(400).json({ error: 'groups must not contain duplicate type' });
+            res.status(400).json({ error: 'group must not contain duplicate type' });
             return;
         }
         newGroup.groupId = req.params.groupId;
@@ -184,7 +219,7 @@ router.put('/users/:userId/groups/:groupId', verifyToken, async (req, res, next)
 });
 
 //Deletes a group
-router.delete('/users/:userId/groups/:groupId', verifyToken, async (req, res, next) => {
+router.delete('/users/:userId/group', verifyToken, async (req, res, next) => {
     try {
         if(!isUUID(req.params.userId)){
             res.status(404).json({ error: 'Invalid UUID' })
