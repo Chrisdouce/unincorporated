@@ -1,5 +1,4 @@
 import { db } from "../db/db.js";
-import { up } from "../db/migrations/2025-03-20-initial-schema.js";
 
 export type Group = {
     groupId: string;
@@ -19,6 +18,27 @@ export async function getAllGroups(): Promise<Group[]> {
     return groups;
 }
 
+export async function getGroupByUserId(userId: string): Promise<Group | null> {
+    const group = await db
+        .selectFrom('user')
+        .select('user.groupId')
+        .where('user.userId', '=', userId)
+        .executeTakeFirst();
+    if (!group) {
+        return null;
+    }
+    const groupId = group.groupId;
+    const groupDetails = await db
+        .selectFrom('group')
+        .selectAll()
+        .where('group.groupId', '=', groupId)
+        .executeTakeFirst();
+    if (!groupDetails) {
+        return null;
+    }
+    return groupDetails as Group;
+}
+
 export async function getGroupByGroupId(groupId: string): Promise<Group | null> {
     const group = await db
         .selectFrom('group')
@@ -28,13 +48,13 @@ export async function getGroupByGroupId(groupId: string): Promise<Group | null> 
     return group || null;
 }
 
-export async function getGroupByLeaderId(leaderId: string): Promise<Group[] | null> {
-    const groups = await db
+export async function getGroupByLeaderId(leaderId: string): Promise<Group | null> {
+    const group = await db
         .selectFrom('group')
         .selectAll()
         .where('group.leaderId', '=', leaderId)
-        .execute()
-    return groups || null;
+        .executeTakeFirst();
+    return group || null;
 }
 
 export async function getAllGroupsByType(type: string): Promise<Group[] | null> {
@@ -60,7 +80,7 @@ export async function createGroup(group: Omit<Group, 'groupId' | 'createdAt' | '
         const createdGroup = await trx
             .insertInto('group')
             .values({ 
-                leaderId: group.leaderId,
+                leaderId: group.leaderId as any,
                 name: group.name,
                 description: group.description,
                 type: group.type,
@@ -68,6 +88,14 @@ export async function createGroup(group: Omit<Group, 'groupId' | 'createdAt' | '
                 updatedAt: new Date()
             })
             .returning(['groupId', 'leaderId', 'name', 'description', 'type', 'createdAt', 'updatedAt'])
+            .executeTakeFirstOrThrow();
+
+        await trx
+            .updateTable('user')
+            .set({ 
+                groupId: createdGroup.groupId
+            })
+            .where('userId', '=', group.leaderId)
             .executeTakeFirstOrThrow();
         return createdGroup as Group;
     });
@@ -80,16 +108,18 @@ export async function createGroup(group: Omit<Group, 'groupId' | 'createdAt' | '
             })
             .where('userId', '=', createdGroup.leaderId)
             .executeTakeFirstOrThrow();
-    }
+    });
     return createdGroup;
 }
 
-export async function updateGroup(group: Omit<Group, 'leaderId' | 'createdAt' | 'updatedAt'>): Promise<Group>{
+export async function updateGroup(group: Omit<Group, 'createdAt' | 'updatedAt'>): Promise<Group>{
     const updatedGroup = await db.transaction().execute(async (trx) => {
         const updatedGroup = await trx
             .updateTable('group')
             .set({
+                leaderId: group.leaderId as any,
                 name: group.name,
+                description: group.description,
                 type: group.type,
                 updatedAt: new Date()
             })
@@ -111,4 +141,31 @@ export async function deleteGroup(groupId: string): Promise<Group> {
         return deletedGroup;
     })
     return deletedGroup;
+}
+
+export async function addUserToGroup(userId: string, groupId: string): Promise<string> {
+    await db.transaction().execute(async (trx) => {
+        await trx
+            .updateTable('user')
+            .set({ 
+                groupId: groupId
+            })
+            .where('userId', '=', userId)
+            .execute();
+    });
+    return groupId;
+}
+
+export async function removeUserFromGroup(userId: string, groupId: string): Promise<string> {
+    await db.transaction().execute(async (trx) => {
+        await trx
+            .updateTable('user')
+            .set({ 
+                groupId: null as unknown as string
+            })
+            .where('userId', '=', userId)
+            .where('groupId', '=', groupId)
+            .execute();
+    });
+    return groupId;
 }

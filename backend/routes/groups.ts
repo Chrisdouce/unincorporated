@@ -2,7 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 import { getUserById } from '../repositories/users';
-import { createGroup, deleteGroup, getGroupByLeaderId, getGroupByGroupId, updateGroup, getAllGroupsByName, getAllGroups } from '../repositories/groups';
+import { createGroup, deleteGroup, getGroupByLeaderId, getGroupByGroupId, updateGroup, getAllGroupsByName, getAllGroups, getGroupByUserId, removeUserFromGroup, addUserToGroup } from '../repositories/groups';
 import { getAllGroupsByType } from '../repositories/groups';
 
 const router = express.Router();
@@ -119,7 +119,7 @@ router.get('/users/:userId/group', verifyToken, async (req, res, next) => {
             res.status(404).json({ error: 'User not found' });
             return;
         }
-        const group = await getGroupByLeaderId(req.params.userId);
+        const group = await getGroupByUserId(req.params.userId);
         res.status(200).json(group);
     } catch (err) {
         next(err);
@@ -136,6 +136,11 @@ router.post('/users/:userId/group', verifyToken, async (req, res, next) => {
         const user = await getUserById(req.params.userId);
         if (!user) {
             res.status(404).json({ error: 'User not found' });
+            return;
+        }
+        const existingGroup = await getGroupByLeaderId(req.params.userId);
+        if (existingGroup) {
+            res.status(400).json({ error: 'User already has a group' });
             return;
         }
         const group = req.body;
@@ -179,12 +184,13 @@ router.put('/users/:userId/group', verifyToken, async (req, res, next) => {
             res.status(404).json({ error: 'User not found' });
             return;
         }
-        if(!isUUID(req.params.groupId)){
-            res.status(404).json({ error: 'Invalid UUID' })
-        }
-        const group = await getGroupByGroupId(req.params.groupId);
+        const group = await getGroupByUserId(req.params.userId);
         if (!group) {
             res.status(404).json({ error: 'Group not found' });
+            return;
+        }
+        if (group.leaderId !== req.params.userId) {
+            res.status(403).json({ error: 'User is not the leader of the group' });
             return;
         }
         const newGroup = req.body;
@@ -196,21 +202,23 @@ router.put('/users/:userId/group', verifyToken, async (req, res, next) => {
             res.status(400).json({ error: 'type is required' });
             return;
         }
-        if (newGroup.type.length !== 6) {
-            res.status(400).json({ error: 'type must contain exactly 6 type' });
+        if(!newGroup.description){
+            res.status(400).json({ error: 'description is required' });
             return;
         }
-        if (newGroup.type.some((character: string) => typeof character !== 'string')) {
-            res.status(400).json({ error: 'type array must contain only strings' });
+        if(!newGroup.leaderId){
+            newGroup.leaderId = req.params.userId;
+        }
+        if (newGroup.description.length > 255) {
+            res.status(400).json({ error: 'description cannot be longer than 255 characters' });
             return;
         }
+        if (!allowedTypes.includes(newGroup.type)) {
+            res.status(400).json({ error: `${newGroup.type} must be one of ${allowedTypes.join(', ')}` });
+            return;
+        }
+        newGroup.groupId = group.groupId;
 
-        const characterSet = new Set(newGroup.type);
-        if (characterSet.size !== newGroup.type.length) {
-            res.status(400).json({ error: 'group must not contain duplicate type' });
-            return;
-        }
-        newGroup.groupId = req.params.groupId;
         const updatedGroup = await updateGroup(newGroup);
         res.status(200).json(updatedGroup);
     } catch (err) {
@@ -218,7 +226,64 @@ router.put('/users/:userId/group', verifyToken, async (req, res, next) => {
     }
 });
 
-//Deletes a group
+//Join a group by ID
+router.put('/users/:userId/group/:groupId', verifyToken, async (req, res, next) => {
+    try {
+        if(!isUUID(req.params.userId)){
+            res.status(404).json({ error: 'Invalid UUID' })
+            return;
+        }
+        const user = await getUserById(req.params.userId);
+        if (!user) {
+            res.status(404).json({ error: 'User not found' });
+            return;
+        }
+        const group = await getGroupByGroupId(req.params.groupId);
+        if (!group) {
+            res.status(404).json({ error: 'Group not found' });
+            return;
+        }
+        if (await getGroupByUserId(req.params.userId)) {
+            res.status(400).json({ error: 'User already has a group' });
+            return;
+        }
+        const groupId = await addUserToGroup(user.userId, group.groupId);
+
+        res.status(200).json(({ groupId: groupId }));
+    } catch (err) {
+        next(err);
+    }
+});
+
+//Leave a group by ID
+router.delete('/users/:userId/group/:groupId', verifyToken, async (req, res, next) => {
+    try {
+        if(!isUUID(req.params.userId)){
+            res.status(404).json({ error: 'Invalid UUID' })
+            return;
+        }
+        const user = await getUserById(req.params.userId);
+        if (!user) {
+            res.status(404).json({ error: 'User not found' });
+            return;
+        }
+        const group = await getGroupByGroupId(req.params.groupId);
+        if (!group) {
+            res.status(404).json({ error: 'Group not found' });
+            return;
+        }
+        if (group.leaderId === req.params.userId) {
+            res.status(400).json({ error: 'User is the leader of the group, must delete group itself or set new leader' });
+            return;
+        }
+        const groupId = await removeUserFromGroup(user.userId, group.groupId);
+        res.status(200).json(({ groupId: groupId }));
+    } catch (err) {
+        next(err);
+    }
+});
+
+//Deletes a group if leader
 router.delete('/users/:userId/group', verifyToken, async (req, res, next) => {
     try {
         if(!isUUID(req.params.userId)){
@@ -230,17 +295,18 @@ router.delete('/users/:userId/group', verifyToken, async (req, res, next) => {
             res.status(404).json({ error: 'User not found' });
             return;
         }
-        if(!isUUID(req.params.groupId)){
-            res.status(404).json({ error: 'Invalid UUID' })
-            return;
-        }
-        const group = await getGroupByGroupId(req.params.groupId);
+        const group = await getGroupByUserId(req.params.userId);
         if (!group) {
             res.status(404).json({ error: 'Group not found' });
             return;
         }
-        const deletedPost = await deleteGroup(req.params.groupId);
-        res.status(200).json(deletedPost);
+        if (group.leaderId !== req.params.userId) {
+            res.status(403).json({ error: 'User is not the leader of the group' });
+            return;
+        }
+
+        const deletedGroup = await deleteGroup(group.groupId);
+        res.status(200).json(deletedGroup);
     } catch (err) {
         next(err);
     }

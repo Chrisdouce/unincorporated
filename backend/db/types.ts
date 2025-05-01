@@ -14,6 +14,7 @@ export type UserTable = {
   hashedPassword: string;
   createdAt: Date;
   updatedAt: Date;
+  groupId: string;
 };
 
 export type FriendTable = {

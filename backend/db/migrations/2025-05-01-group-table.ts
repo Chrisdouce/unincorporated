@@ -13,7 +13,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     await db.schema.alterTable("user")
         .addColumn("groupId", "uuid", col => col.references('group.groupId').onUpdate('cascade').onDelete('set null'))
         .execute();
-
+    //IGN for user
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
