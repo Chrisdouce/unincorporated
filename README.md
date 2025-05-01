@@ -1,2 +1,2 @@
 # unincorporated
-A website made for players of Hypixel Skyblocks, where users can ...
+The project is currently unknown at this point. Please wait while we find out what to do
