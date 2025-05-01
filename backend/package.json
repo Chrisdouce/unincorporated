@@ -1,0 +1,36 @@
+{
+  "name": "backend",
+  "type": "module",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "backend": "set 'APP_ENV=development' && set 'NODE_ENV=development' && tsx watch --clear-screen=false ./index.ts",
+    "test-backend": "tsx ./tests/setup.ts && set APP_ENV=test&& tsx --test --test-concurrency=1 ./tests/*.test.ts",
+    "test": "tsx watch src/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "kysely": "^0.28.2",
+    "pg": "^8.15.6",
+    "supertest": "^7.1.0",
+    "verror": "^1.10.1"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/express": "^5.0.1",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/node": "^22.15.3",
+    "@types/pg": "^8.11.14",
+    "@types/supertest": "^6.0.3",
+    "@types/verror": "^1.10.11",
+    "prettier": "^3.5.3",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}
