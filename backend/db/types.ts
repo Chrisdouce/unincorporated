@@ -3,7 +3,7 @@ import { ColumnType, Generated } from "kysely";
 export type Database = {
   user: UserTable;
   friend: FriendTable;
-  team: TeamTable;
+  group: GroupTable;
   post: PostTable;
   reaction: ReactionTable;
 };
@@ -22,11 +22,11 @@ export type FriendTable = {
   createdAt: Date;
 }
 
-export type TeamTable = {
-    teamId: Generated<string>;
-    userId: ColumnType<string, string, undefined>;
+export type GroupTable = {
+    groupId: Generated<string>;
+    leaderId: ColumnType<string, string, undefined>;
     name: string;
-    characters: string[];
+    type: string;
     createdAt: Date;
     updatedAt: Date;
 }

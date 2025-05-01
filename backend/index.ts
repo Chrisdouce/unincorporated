@@ -3,7 +3,7 @@ import VError from 'verror';
 import { migrateToLatest } from "./db/migrate.js";
 import usersRouter from './routes/users.js';
 import postsRouter from './routes/posts.js';
-import teamsRouter from './routes/teams.js';
+import groupsRouter from './routes/groups.js';
 
 await migrateToLatest();
 
@@ -13,7 +13,7 @@ app.use(express.json());
 
 app.use('/api/v1', usersRouter);
 app.use('/api/v1', postsRouter);
-app.use('/api/v1', teamsRouter)
+app.use('/api/v1', groupsRouter)
 
 // Error handling middleware (stolen from assignment 2)
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
