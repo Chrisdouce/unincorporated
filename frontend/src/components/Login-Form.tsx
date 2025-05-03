@@ -11,7 +11,7 @@ import {
     Checkbox,
     FormControlLabel
 } from '@mui/material';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import LoginIcon from '@mui/icons-material/Login';
 import GoogleIcon from '@mui/icons-material/Google';
 
 export default function LoginPage() {
@@ -46,7 +46,7 @@ export default function LoginPage() {
                 }}
             >
                 <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
-                    <LockOutlinedIcon />
+                    <LoginIcon />
                 </Avatar>
                 <Typography component="h1" variant="h5">
                     Sign in
@@ -85,19 +85,19 @@ export default function LoginPage() {
                         Sign In
                     </Button>
                     <Box>
-                                <Typography variant="body2" sx={{ textAlign: 'center' }}>
-                                    {"Don't have an account? "}
-                                    <Link 
-                                        href="#" 
-                                        variant="body2" 
-                                        sx={{ 
-                                            textDecoration: 'none', 
-                                            '&:hover': { textDecoration: 'underline' } 
-                                        }}
-                                    >
-                                        Sign Up
-                                    </Link>
-                                </Typography>
+                        <Typography variant="body2" sx={{ textAlign: 'center' }}>
+                            {"Don't have an account? "}
+                            <Link 
+                                href="#" 
+                                variant="body2" 
+                                sx={{ 
+                                    textDecoration: 'none', 
+                                    '&:hover': { textDecoration: 'underline' } 
+                                }}
+                            >
+                                Sign Up
+                            </Link>
+                        </Typography>
                     </Box>
                     <Box sx={{ mt: 3, mb: 2, display: 'flex', alignItems: 'center' }}>
                         <Divider sx={{ flexGrow: 1 }} />

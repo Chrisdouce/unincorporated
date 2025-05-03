@@ -6,9 +6,7 @@ import {
   Typography,
   TextField,
   Button,
-  Grid,
-  Link,
-  Divider
+  Link
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 
@@ -26,15 +24,15 @@ export default function SignUpPage() {
 
   return (
     <Container
-            component="main"
-            maxWidth="xs"
-            sx={{
-                backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                borderRadius: 2,
-                boxShadow: 3,
-                padding: 1
-            }}
-        >
+        component="main"
+        maxWidth="xs"
+        sx={{
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            borderRadius: 2,
+            boxShadow: 3,
+            padding: 1
+        }}
+    >
     <Container component="main" maxWidth="xs">
       <CssBaseline />
       <Box
@@ -66,15 +64,6 @@ export default function SignUpPage() {
             margin="normal"
             required
             fullWidth
-            id="email"
-            label="Email Address"
-            name="email"
-            autoComplete="email"
-          />
-          <TextField
-            margin="normal"
-            required
-            fullWidth
             name="password"
             label="Password"
             type="password"
@@ -99,11 +88,19 @@ export default function SignUpPage() {
           >
             Sign Up
           </Button>
-          <Grid container justifyContent="flex-end">
-              <Link href="#" variant="body2">
-                Already have an account? Sign in
-              </Link>
-          </Grid>
+          <Typography variant="body2" sx={{ textAlign: 'center' }}>
+            {"Already have an account? "}
+            <Link 
+                href="#" 
+                variant="body2" 
+                sx={{ 
+                    textDecoration: 'none', 
+                    '&:hover': { textDecoration: 'underline' } 
+                }}
+            >
+                Sign in
+            </Link>
+          </Typography>
         </Box>
       </Box>
     </Container>
