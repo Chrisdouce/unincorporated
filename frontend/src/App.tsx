@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import {
   Box, AppBar, Toolbar, Typography, Tabs, Tab, Button, IconButton,
-  Menu, MenuItem, TextField, Paper
+  Menu, MenuItem, TextField, Paper,
+  createTheme,
+  ThemeProvider,
+  CssBaseline
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import Dialog from '@mui/material/Dialog';
@@ -69,8 +72,15 @@ export default function App() {
     );
   };
   
+  const darkTheme = createTheme({
+    palette: {
+      mode: 'dark',
+    },
+  });
 
   return (
+    <ThemeProvider theme={darkTheme}>
+    <CssBaseline />
     <Box>
       <AppBar position="static" color="default">
         <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -196,5 +206,6 @@ export default function App() {
         </DialogActions>
       </Dialog>
     </Box>
+    </ThemeProvider>
   );
 }
