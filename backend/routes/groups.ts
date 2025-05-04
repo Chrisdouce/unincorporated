@@ -152,6 +152,14 @@ router.post('/users/:userId/group', verifyToken, async (req, res, next) => {
             res.status(400).json({ error: 'type is required' });
             return;
         }
+        if (!group.size) {
+            res.status(400).json({ error: 'size is required' });
+            return;
+        }
+        if (!group.capacity) {
+            res.status(400).json({ error: 'capacity is required' });
+            return;
+        }
         if(!group.description){
             res.status(400).json({ error: 'description is required' });
             return;
@@ -194,12 +202,20 @@ router.put('/users/:userId/group', verifyToken, async (req, res, next) => {
             return;
         }
         const newGroup = req.body;
-        if (!newGroup.name) {
+        if (!group.name) {
             res.status(400).json({ error: 'name is required' });
             return;
         }
         if (!newGroup.type) {
             res.status(400).json({ error: 'type is required' });
+            return;
+        }
+        if (!newGroup.size) {
+            res.status(400).json({ error: 'size is required' });
+            return;
+        }
+        if (!newGroup.capacity) {
+            res.status(400).json({ error: 'capacity is required' });
             return;
         }
         if(!newGroup.description){
