@@ -1,3 +1,4 @@
+import { sql } from "kysely";
 import { db } from "../db/db.js";
 
 export type Group = {
@@ -6,6 +7,8 @@ export type Group = {
     name: string;
     description: string;
     type: string;
+    size: number;
+    capacity: number;
     createdAt: Date;
     updatedAt: Date;
 };
@@ -84,10 +87,12 @@ export async function createGroup(group: Omit<Group, 'groupId' | 'createdAt' | '
                 name: group.name,
                 description: group.description,
                 type: group.type,
+                size: group.size,
+                capacity: group.capacity,
                 createdAt: new Date(),
                 updatedAt: new Date()
             })
-            .returning(['groupId', 'leaderId', 'name', 'description', 'type', 'createdAt', 'updatedAt'])
+            .returning(['groupId', 'leaderId', 'name', 'description', 'type', 'size', 'capacity', 'createdAt', 'updatedAt'])
             .executeTakeFirstOrThrow();
 
         await trx
@@ -151,6 +156,12 @@ export async function addUserToGroup(userId: string, groupId: string): Promise<s
                 groupId: groupId
             })
             .where('userId', '=', userId)
+            .execute();
+
+        await trx
+            .updateTable('group')
+            .set({ size: sql`size + 1` })
+            .where('groupId', '=', groupId)
             .execute();
     });
     return groupId;
