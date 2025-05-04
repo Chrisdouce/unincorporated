@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box, AppBar, Toolbar, Typography, Tabs, Tab, Button, IconButton,
   Menu, MenuItem, TextField, Paper
@@ -9,17 +9,18 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Select from '@mui/material/Select';
-import { BrowserRouter, Route, Routes } from "react-router";
+import { Route, Routes, Navigate } from "react-router";
 import LoginPage from './components/Login-Form';
 import { useUser } from "./context/UserContext";
 import SignUpPage from './components/Signup-Form';
-import { Navigate } from 'react-router';
+import { useNavigate } from "react-router";
 
 interface CardData {
   name: string;
-  count: number;
-  total: number;
-  message: string;
+  size: number;
+  type: string;
+  capacity: number;
+  description: string;
 }
 
 export default function App() {
@@ -27,16 +28,23 @@ export default function App() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [cards, setCards] = useState<CardData[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [newName, setNewName] = useState('Diana');
-  const [newMessage, setNewMessage] = useState('');
+  const [newType, setNewType] = useState('Diana');
+  const [newDescription, setNewDescription] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [groupToDelete, setGroupToDelete] = useState<string | null>(null);
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+  const [groupToLeave, setGroupToLeave] = useState<string | null>(null);
+  const [userGroup, setUserGroup] = useState<{ groupId: string } | null>(null);
   const tabLabels = ["Party Finder", "Guides", "Friends"];
-  const { token, isLoading, login, logout } = useUser();
+  const { token, userId, isLoading, login, logout } = useUser();
+  const navigate = useNavigate();
 
   const partySizeOptions: Record<string, { default: number; min: number; max: number }> = {
     Kuddra: { default: 4, min: 2, max: 4 },
     Dungeons: { default: 5, min: 2, max: 5 },
     Diana: { default: 6, min: 2, max: 10 },
-    Fishing: { default: 6, min: 2, max: 10 }
+    Fishing: { default: 6, min: 2, max: 10 },
+    Other: { default: 6, min: 2, max: 10 },
   };
   const [partySize, setPartySize] = useState(partySizeOptions['Diana'].default);
 
@@ -52,39 +60,174 @@ export default function App() {
     setAnchorEl(null);
   };
 
-  const handleCreateCard = () => {
-    const newCard: CardData = {
-      name: newName,
-      count: 1,
-      total: partySize,
-      message: newMessage || 'No description'
-    };
-  
-    setCards(prev => [...prev, newCard]);
-    setDialogOpen(false);
-    setNewMessage('');
-    setNewName('Diana');
+  const handleDeleteClick = (groupName: string) => {
+    setGroupToDelete(groupName);
+    setDeleteDialogOpen(true);
   };
 
-  const handleJoin = (index: number) => {
-    setCards(prevCards =>
-      prevCards.map((card, i) =>
-        i === index && card.count < card.total
-          ? { ...card, count: card.count + 1 }
-          : card
-      )
-    );
+  useEffect(() => {
+    fetchGroups();
+    fetchUserGroup();
+  }, []);
+
+  async function fetchGroups() {
+    try {
+      const res = await fetch('http://localhost:3000/api/v1/groups', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        console.log(data);
+        setCards(data);
+      } else if (res.status === 401) {
+        logout();
+      }
+    } catch (err) {
+      console.error("Failed to fetch groups:", err);
+    }
+  }
+
+  async function handleCreateCard() {
+    const newCard: CardData = {
+      name: newType,
+      type: newType,
+      size: 1,
+      capacity: partySize,
+      description: newDescription || 'No description',
+    };
+    console.log(JSON.stringify(newCard));
+
+    const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/group`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(newCard),
+    });
+    if (res.status === 401) {
+      logout();
+    }
+    navigate('/');
+    setDialogOpen(false);
+    await fetchGroups();
   };
+
+  const handleJoin = async (index: number, groupId: string) => {
+    try {
+      const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/group/${groupId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+      if (res.ok) {
+        setCards(prevCards =>
+          prevCards.map((card, i) =>
+            i === index ? { ...card, size: card.size + 1 } : card
+          )
+        );
+        await fetchUserGroup();
+      } else {
+        const error = await res.json();
+        console.error("Error joining group:", error.error);
+      }
+    } catch (err) {
+      console.error("Error joining group:", err);
+    }
+  };
+
+  const fetchUserGroup = async () => {
+    try {
+      const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/group`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.ok) {
+        const group = await res.json();
+        setUserGroup(group);
+      } else if (res.status === 404) {
+        setUserGroup(null);
+      }
+    } catch (err) {
+      console.error("Failed to fetch user group:", err);
+    }
+  };
+
+  const handleLeave = (groupId: string) => {
+    setGroupToLeave(groupId);
+    setLeaveDialogOpen(true);
+  };
+  
+  const handleConfirmLeave = async () => {
+    if (!groupToLeave) return;
+  
+    try {
+      const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/group/${groupToLeave}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+      if (res.ok) {
+        setCards(prevCards =>
+          prevCards.map(card =>
+            card.groupId === groupToLeave ? { ...card, size: card.size - 1 } : card
+          )
+        );
+        await fetchUserGroup();
+      } else {
+        const error = await res.json();
+        console.error("Error leaving group:", error.error);
+      }
+    } catch (err) {
+      console.error("Error leaving group:", err);
+    } finally {
+      setLeaveDialogOpen(false);
+      setGroupToLeave(null);
+      navigate('/');
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!groupToDelete) return;
+  
+    try {
+      const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/group`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+      if (res.ok) {
+        await fetchGroups();
+      } else {
+        const error = await res.json();
+        console.error("Error deleting group:", error.error);
+      }
+    } catch (err) {
+      console.error("Error deleting group:", err);
+    } finally {
+      setDeleteDialogOpen(false);
+      setGroupToDelete(null);
+    }
+  };
+
   if (!token) {
     return (
-    <BrowserRouter>
-        <Routes>
-          {/* Add redirect from root path */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="/login" element={<LoginPage onLogin={login} />} />
-          <Route path="/signup" element={<SignUpPage />} />
-        </Routes>
-      </BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<LoginPage onLogin={login} />} />
+        <Route path="/signup" element={<SignUpPage />} />
+      </Routes>
     );
   }
 
@@ -139,78 +282,120 @@ export default function App() {
               mb: 2,
             }}
           >
-            <Typography>{card.name}</Typography>
+            <Typography>{card.type}</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {[...Array(card.total)].map((_, i) => (
+              {[...Array(card.capacity)].map((_, i) => (
                 <Box
                   key={i}
                   sx={{
                     width: 40,
                     height: 40,
                     border: '2px solid',
-                    borderColor: i < card.count ? 'yellow' : 'black'
+                    borderColor: i < card.size ? 'yellow' : 'black'
                   }}
                 />
               ))}
             </Box>
-            <Typography>{card.message}</Typography>
-            <Typography>{card.count}/{card.total}</Typography>
-            {card.count < card.total ? (
-              <Button variant="outlined" onClick={() => handleJoin(index)}>
+            <Typography>{card.description}</Typography>
+            <Typography>{card.size}/{card.capacity}</Typography>
+
+            {card.leaderId === userId ? (
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={() => handleDeleteClick(card.name)}
+              >
+                Delete
+              </Button>
+            ) : userGroup?.groupId === card.groupId ? (
+              <Button variant="outlined" color="error" onClick={() => handleLeave(card.groupId)}>
+                Leave
+              </Button>
+            ) : !userGroup && card.size < card.capacity ? (
+              <Button variant="outlined" onClick={() => handleJoin(index, card.groupId)}>
                 Join
               </Button>
             ) : (
-              <Typography color="error" fontWeight="bold">
-                Party is full
-              </Typography>
+              null
             )}
           </Box>
         ))}
       </Box>
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
-        <DialogTitle>Create Party</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-        <Select
-          value={newName}
-          onChange={(e) => {
-            const selected = e.target.value;
-            setNewName(selected);
-            setPartySize(partySizeOptions[selected].default);
-          }}
-          fullWidth
-        >
-          {Object.entries(partySizeOptions).map(([name, { default: size }]) => (
-            <MenuItem key={name} value={name}>
-              {`${name} (${size})`}
-            </MenuItem>
-          ))}
-        </Select>
-        <Select
-          value={partySize}
-          onChange={(e) => setPartySize(Number(e.target.value))}
-          fullWidth
-        >
-          {Array.from(
-            { length: partySizeOptions[newName].max - partySizeOptions[newName].min + 1 },
-            (_, i) => partySizeOptions[newName].min + i
-          ).map((size) => (
-            <MenuItem key={size} value={size}>
-              Party Size: {size}
-            </MenuItem>
-          ))}
-        </Select>
-          <TextField
-            label="Description"
-            fullWidth
-            multiline
-            minRows={2}
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-          />
+        <form onSubmit={(e) => { e.preventDefault(); handleCreateCard(); }}>
+          <DialogTitle>Create Party</DialogTitle>
+          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <Select
+              value={newType}
+              onChange={(e) => {
+                const selected = e.target.value;
+                setNewType(selected);
+                setPartySize(partySizeOptions[selected].default);
+              }}
+              fullWidth
+            >
+              {Object.entries(partySizeOptions).map(([name, { default: size }]) => (
+                <MenuItem key={name} value={name}>
+                  {`${name} (${size})`}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select
+              value={partySize}
+              onChange={(e) => setPartySize(Number(e.target.value))}
+              fullWidth
+            >
+              {Array.from(
+                { length: partySizeOptions[newType].max - partySizeOptions[newType].min + 1 },
+                (_, i) => partySizeOptions[newType].min + i
+              ).map((size) => (
+                <MenuItem key={size} value={size}>
+                  Party Size: {size}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <TextField
+              label="Description"
+              fullWidth
+              multiline
+              minRows={2}
+              value={newDescription}
+              onChange={(e) => setNewDescription(e.target.value)}
+            />
+          </DialogContent>
+
+          <DialogActions>
+            <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button type="submit" variant="contained">Create</Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete <strong>{groupToDelete}</strong>?
+          </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleCreateCard}>Create</Button>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button color="error" onClick={handleConfirmDelete}>Delete</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={leaveDialogOpen} onClose={() => setLeaveDialogOpen(false)}>
+        <DialogTitle>Confirm Leave</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to leave this group?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLeaveDialogOpen(false)}>Cancel</Button>
+          <Button color="error" onClick={handleConfirmLeave}>Leave</Button>
         </DialogActions>
       </Dialog>
     </Box>
