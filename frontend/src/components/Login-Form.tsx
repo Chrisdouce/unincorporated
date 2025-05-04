@@ -15,11 +15,18 @@ import {
 import LoginIcon from '@mui/icons-material/Login';
 import GoogleIcon from '@mui/icons-material/Google';
 import { JSX, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { jwtDecode } from 'jwt-decode';
 
 type Props = {
-    onLogin: (token: string) => void;
+    onLogin: (token: string, userId: string) => void;
 }
+
+type JwtPayload = {
+    userId: string;
+    username: string;
+    createdAt: string;
+    updatedAt: string;
+  };
 
 export default function LoginPage({onLogin}: Props): JSX.Element {
     const [username, setUsername] = useState('');
@@ -52,7 +59,8 @@ export default function LoginPage({onLogin}: Props): JSX.Element {
             return;
         }
         const data = await res.json();
-        onLogin(data.token);
+        const decoded = jwtDecode<JwtPayload>(data.token);
+        onLogin(data.token, decoded.userId);
     }
     
     return (
