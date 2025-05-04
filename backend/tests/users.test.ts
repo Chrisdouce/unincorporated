@@ -446,11 +446,11 @@ describe('Settings routes', () => {
         const token = res.body.token;
         res = await request.put(`/api/v1/users/${user.userId}/settings`).set('Authorization', `Bearer ${token}`).send({
             darkMode: true,
-            ign: 'new_ign'
+            ign: 'cat'
         });
         assert.strictEqual(res.status, 200);
         assert.strictEqual(res.body.darkMode, true);
-        assert.strictEqual(res.body.ign, 'new_ign');
+        assert.strictEqual(res.body.ign, 'cat');
     });
 
     test('PUT /users/:userId/settings returns 400 for bad data', async () => {

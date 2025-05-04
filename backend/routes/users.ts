@@ -416,13 +416,24 @@ router.put('/users/:userId/settings', verifyToken, async (req, res, next) => {
         res.status(400).json({ error: 'ign must not be empty' });
         return;
     }
+    try {
+        let api = await fetch(`https://api.mojang.com/users/profiles/minecraft/${req.body.ign}`);
+        const data = await api.json();
+        api = await fetch(`https://crafatar.com/avatars/${data.id}?size=256&overlay`);
+        if (!api.ok) {
+            res.status(400).json({ error: 'ign must be a valid Minecraft username' });
+            return;
+        }
+    } catch (error) {
+        res.status(400).json({ error: 'ign must be a valid Minecraft username' });
+        return;
+    }
 
     const updatedSettings = await updateUserSettings({
         userId: req.params.userId,
         darkMode: req.body.darkMode,
         ign: req.body.ign
     });
-    console.log(updatedSettings);
     res.status(200).json(updatedSettings);
 });
 

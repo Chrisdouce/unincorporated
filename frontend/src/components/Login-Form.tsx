@@ -30,7 +30,7 @@ export default function LoginPage({onLogin}: Props): JSX.Element {
     function handleUpdateUsername(value: string) {
         setUsername(value);
         setHasFailedLogin(false);
-      }
+    }
     
     function handleUpdatePassword(value: string) {
         setPassword(value);
