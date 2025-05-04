@@ -1,23 +1,30 @@
-import React, { useEffect, useState } from 'react';
-import { Container, Typography, FormControlLabel, Switch, TextField, Box, Button } from '@mui/material';
+import { useEffect, useState } from 'react';
+import { Container, Typography, FormControlLabel, Switch, TextField, Button } from '@mui/material';
 import { useUser } from "../context/UserContext";
+import { Setting } from '../types/Settings';
 
 export default function SettingsPage() {
-    const { token, logout } = useUser();
+    const { token, logout, isLoading } = useUser();
     const [darkMode, setDarkMode] = useState(false);
     const [ign, setIgn] = useState(''); 
 
     useEffect(() => {
         async function fetchSettings() {
             try {
-                const res = await fetch('http://localhost:3000/api/v1/users/userId/settings', {
+                if (!token) {
+                    logout();
+                    return;
+                }
+                const decodedToken = JSON.parse(atob(token.split('.')[1]));
+                const userId = decodedToken.userId;
+                const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/settings`, {
                     method: 'GET',
                     headers: { 'Authorization': `Bearer ${token}` },
                 });
-                if (res.ok) {
+                if (res.status === 200) {
                     const data = await res.json();
-                    setDarkMode(data.dark_mode);
-                    setIgn(data.ign);
+                    setDarkMode(data.darkMode ?? false);
+                    setIgn(data.ign ?? '');
                 } else {
                     console.error('Failed to fetch settings:', res.statusText);
                 }
@@ -26,18 +33,34 @@ export default function SettingsPage() {
             }
         }
         fetchSettings();
-    })
-
+    }, [token]);
+    
+    if (isLoading) return null;
     async function updateSettings() {
         try {
-            const res = await fetch('http://localhost:3000/api/v1/users/userId/settings', {
+            if (!token) {
+                logout();
+                return;
+            }
+            const decodedToken = JSON.parse(atob(token.split('.')[1]));
+            const userId = decodedToken.userId;
+            const newSettings: Pick<Setting, 'userId' | 'darkMode' | 'ign'> = {
+                userId: userId,
+                darkMode: darkMode,
+                ign: ign,
+            };
+            const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/settings`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ dark_mode: darkMode, ign: ign }),
+                headers: {
+                    'Content-Type': 'application/json', 
+                    'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(newSettings),
             });
+            const data = await res.json();
             if (res.status === 401) {
                 logout();
-              }
+                return;
+            }
             if (res.ok) {
                 console.log('Settings updated successfully');
             } else {
@@ -49,44 +72,29 @@ export default function SettingsPage() {
     }
 
     return (
-        <Box sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '50vh',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundImage: (theme) => theme.palette.mode === 'light' 
-                ? 'url(/assets/background-light.jpg)' 
-                : 'url(/assets/background-dark.jpg)',
-            backgroundRepeat: 'no-repeat',
-            backgroundAttachment: 'fixed',
-        }}>
-            <Container
-                    component="main"
-                    maxWidth="xs"
-                    sx={{
-                        borderRadius: 2,
-                        boxShadow: 3,
-                        padding: 1,
-                        backgroundColor: (theme) => theme.palette.mode === 'light' 
-                            ? 'rgba(255, 255, 255, 0.8)' 
-                            : 'rgba(0, 0, 0, 0.8)',
-                        backdropFilter: 'blur(8px)',
-                    }}
-                >
+        <><Container
+                component="main"
+                maxWidth="xs"
+                sx={{
+                    borderRadius: 2,
+                    boxShadow: 3,
+                    padding: 1,
+                    backgroundColor: (theme) => theme.palette.mode === 'light'
+                        ? 'rgba(255, 255, 255, 0.8)'
+                        : 'rgba(0, 0, 0, 0.8)',
+                    backdropFilter: 'blur(8px)',
+                }}
+            >
                 <Typography variant="h4" gutterBottom>Settings</Typography>
                 <FormControlLabel
                     control={<Switch checked={darkMode} onChange={(event) => setDarkMode(event.target.checked)} />}
-                    label="Dark Mode"
-                />
+                    label="Dark Mode" />
                 <TextField
                     label="In-Game Name (IGN)"
                     value={ign}
                     onChange={(event) => setIgn(event.target.value)}
                     fullWidth
-                    margin="normal"
-                />
+                    margin="normal" />
                 <Button
                     type="submit"
                     fullWidth
@@ -97,7 +105,6 @@ export default function SettingsPage() {
                     Submit
                 </Button>
 
-            </Container>
-        </Box>
+            </Container></>
     );
 }

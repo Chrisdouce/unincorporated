@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { createUser, getAllUsers, getUserById, getUserByUsername, updateUser, deleteUser, getAllFriendsByUserId, addFriend, removeFriend, getFriendByUserId } from '../repositories/users.js';
+import { createUser, getAllUsers, getUserById, getUserByUsername, updateUser, deleteUser, getAllFriendsByUserId, addFriend, removeFriend, getFriendByUserId, updateUserSettings, getUserSettings } from '../repositories/users.js';
 import 'dotenv/config';
 
 const router = express.Router();
@@ -87,7 +87,7 @@ router.post('/users', async (req, res, next) => {
             bcrypt.hash(req.body.password, salt, async function(_err: any, hash: any) {
                 const user = await createUser({
                     "username": req.body.username,
-                    "hashedPassword": hash,
+                    "hashedPassword": hash
                 });
                 res.status(201).json(user);
             });
@@ -362,5 +362,69 @@ router.delete('/users/:userId/friends', verifyToken, async (req, res, next) => {
     const deletedFriend = await removeFriend(user.userId, friend.userId);
     res.status(200).json(deletedFriend);
 });
+
+router.get('/users/:userId/settings', verifyToken, async (req, res, next) => {
+    //Check if userId is a valid UUID
+    if (!isUUID(req.params.userId)) {
+        res.status(404).json({ error: 'Invalid UUID' });
+        return;
+    } 
+    const user = await getUserById(req.params.userId);
+    if (!user) {
+        res.status(404).json({ error: 'User not found' });
+        return;
+    }
+    
+    const settings = await getUserSettings(user.userId);
+    res.status(200).json(settings);
+});
+
+router.put('/users/:userId/settings', verifyToken, async (req, res, next) => {
+    //Check if userId is a valid UUID
+    if (!isUUID(req.params.userId)) {
+        res.status(404).json({ error: 'Invalid UUID' });
+        return;
+    }
+    const user = await getUserById(req.params.userId);
+    if (!user) {
+        res.status(404).json({ error: 'User not found' });
+        return;
+    }
+    //Validation for darkMode
+    if (req.body.darkMode === undefined) {
+        res.status(400).json({ error: 'darkMode is required' });
+        return;
+    }
+    if (typeof req.body.darkMode !== 'boolean') {
+        res.status(400).json({ error: 'darkMode must be a boolean' });
+        return;
+    }
+    
+    //Validation for ign
+    if (!req.body.ign) {
+        res.status(400).json({ error: 'ign is required' });
+        return;
+    }
+    if (typeof req.body.ign !== 'string') {
+        res.status(400).json({ error: 'ign must be a string' });
+        return;
+    }
+    if (req.body.ign.length < 0 || req.body.ign.length > 255) {
+        res.status(400).json({ error: 'ign must be between 1 and 255 characters' });
+        return;
+    } else if (req.body.ign.trim() === '') {
+        res.status(400).json({ error: 'ign must not be empty' });
+        return;
+    }
+
+    const updatedSettings = await updateUserSettings({
+        userId: req.params.userId,
+        darkMode: req.body.darkMode,
+        ign: req.body.ign
+    });
+    console.log(updatedSettings);
+    res.status(200).json(updatedSettings);
+});
+
 
 export default router;
