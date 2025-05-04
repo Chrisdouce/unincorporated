@@ -9,34 +9,80 @@ import {
     Divider,
     Link,
     Checkbox,
-    FormControlLabel
+    FormControlLabel,
+    Alert
 } from '@mui/material';
 import LoginIcon from '@mui/icons-material/Login';
 import GoogleIcon from '@mui/icons-material/Google';
+import { JSX, useState } from 'react';
+import { useNavigate } from 'react-router';
 
-export default function LoginPage() {
-    const handleSubmit = (event: { preventDefault: () => void; currentTarget: HTMLFormElement | undefined; }) => {
-        event.preventDefault();
-        const data = new FormData(event.currentTarget);
-        console.log({
-            email: data.get('email'),
-            password: data.get('password'),
-            rememberMe: data.get('rememberMe') === 'on',
+type Props = {
+    onLogin: (token: string) => void;
+}
+
+export default function LoginPage({onLogin}: Props): JSX.Element {
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [hasFailedLogin, setHasFailedLogin] = useState(false);
+    const [rememberMe, setRememberMe] = useState(false);
+
+    function handleUpdateUsername(value: string) {
+        setUsername(value);
+        setHasFailedLogin(false);
+      }
+    
+    function handleUpdatePassword(value: string) {
+        setPassword(value);
+        setHasFailedLogin(false);
+    }
+
+    async function handleLoginSubmit(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+        if (!username || !password) return;
+        const res = await fetch('http://localhost:3000/api/v1/users/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
         });
-    };
-
+        if (res.status !== 200) {
+            console.log('Login failed:', res.status, res.statusText);
+            setHasFailedLogin(true);
+            console.log(hasFailedLogin);
+            return;
+        }
+        const data = await res.json();
+        onLogin(data.token);
+    }
+    
     return (
+        <Box sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '100vh',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+        }}>
         <Container
             component="main"
             maxWidth="xs"
             sx={{
-                backgroundColor: 'rgba(255, 255, 255, 0.8)',
                 borderRadius: 2,
                 boxShadow: 3,
-                padding: 1
+                padding: 1,
+                backgroundColor: (theme) => theme.palette.mode === 'light' 
+                    ? 'rgba(255, 255, 255, 0.8)' 
+                    : 'rgba(0, 0, 0, 0.8)',
+                backdropFilter: 'blur(8px)',
             }}
         >
             <CssBaseline />
+            {hasFailedLogin && (
+                <Alert variant="outlined" severity="error">
+                    Invalid username or password. Please try again.
+                </Alert>
+            )}
             <Box
                 sx={{
                     marginTop: 2,
@@ -51,7 +97,7 @@ export default function LoginPage() {
                 <Typography component="h1" variant="h5">
                     Sign in
                 </Typography>
-                <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
+                <Box component="form" onSubmit={handleLoginSubmit} noValidate sx={{ mt: 1 }}>
                     <TextField
                         margin="normal"
                         required
@@ -61,6 +107,7 @@ export default function LoginPage() {
                         name="username"
                         autoComplete="username"
                         autoFocus
+                        onChange={(e) => handleUpdateUsername(e.target.value)}
                     />
                     <TextField
                         margin="normal"
@@ -71,10 +118,12 @@ export default function LoginPage() {
                         type="password"
                         id="password"
                         autoComplete="current-password"
+                        onChange={(e) => handleUpdatePassword(e.target.value)}
                     />
                     <FormControlLabel
                         control={<Checkbox name="rememberMe" color="primary" />}
                         label="Remember me"
+                        onChange={(e) => setRememberMe((e.target as HTMLInputElement).checked)}
                     />
                     <Button
                         type="submit"
@@ -88,7 +137,7 @@ export default function LoginPage() {
                         <Typography variant="body2" sx={{ textAlign: 'center' }}>
                             {"Don't have an account? "}
                             <Link 
-                                href="#" 
+                                href="/signup" 
                                 variant="body2" 
                                 sx={{ 
                                     textDecoration: 'none', 
@@ -108,12 +157,19 @@ export default function LoginPage() {
                         fullWidth
                         variant="contained"
                         startIcon={<GoogleIcon />}
-                        sx={{ mt: 1, mb: 2, bgcolor: 'red', '&:hover': { bgcolor: 'darkred' } }}
+                        sx={{ 
+                            mt: 1, 
+                            mb: 2, 
+                            bgcolor: '#4285F4', 
+                            color: 'white', 
+                            '&:hover': { bgcolor: '#357AE8' } 
+                        }}
                     >
                         Sign in with Google
                     </Button>
                 </Box>
             </Box>
         </Container>
+        </Box>
     );
 }

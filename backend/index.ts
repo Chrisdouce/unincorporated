@@ -1,5 +1,6 @@
 import express, { NextFunction, Request, Response } from 'express';
 import VError from 'verror';
+import cors from 'cors';
 import { migrateToLatest } from "./db/migrate.js";
 import usersRouter from './routes/users.js';
 import postsRouter from './routes/posts.js';
@@ -10,6 +11,7 @@ await migrateToLatest();
 export const app = express();
 
 app.use(express.json());
+app.use(cors());
 
 app.use('/api/v1', usersRouter);
 app.use('/api/v1', postsRouter);

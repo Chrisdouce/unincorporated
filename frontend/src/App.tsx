@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
 import {
   Box, AppBar, Toolbar, Typography, Tabs, Tab, Button, IconButton,
-  Menu, MenuItem, TextField, Paper,
-  createTheme,
-  ThemeProvider,
-  CssBaseline
+  Menu, MenuItem, TextField, Paper
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import Dialog from '@mui/material/Dialog';
@@ -12,6 +9,11 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Select from '@mui/material/Select';
+import { BrowserRouter, Route, Routes } from "react-router";
+import LoginPage from './components/Login-Form';
+import { useUser } from "./context/UserContext";
+import SignUpPage from './components/Signup-Form';
+import { Navigate } from 'react-router';
 
 interface CardData {
   name: string;
@@ -28,6 +30,8 @@ export default function App() {
   const [newName, setNewName] = useState('Diana');
   const [newMessage, setNewMessage] = useState('');
   const tabLabels = ["Party Finder", "Guides", "Friends"];
+  const { token, isLoading, login, logout } = useUser();
+
   const partySizeOptions: Record<string, { default: number; min: number; max: number }> = {
     Kuddra: { default: 4, min: 2, max: 4 },
     Dungeons: { default: 5, min: 2, max: 5 },
@@ -71,33 +75,37 @@ export default function App() {
       )
     );
   };
-  
-  const darkTheme = createTheme({
-    palette: {
-      mode: 'dark',
-    },
-  });
+  if (!token) {
+    return (
+    <BrowserRouter>
+        <Routes>
+          {/* Add redirect from root path */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/login" element={<LoginPage onLogin={login} />} />
+          <Route path="/signup" element={<SignUpPage />} />
+        </Routes>
+      </BrowserRouter>
+    );
+  }
 
   return (
-    <ThemeProvider theme={darkTheme}>
-    <CssBaseline />
     <Box>
       <AppBar position="static" color="default">
         <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Typography>Logo</Typography>
-          <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'flex-end' }}>
-            <Tabs value={tabValue} onChange={handleTabChange}>
-              {tabLabels.map((label, index) => (
-                <Tab key={index} label={label} />
-              ))}
-            </Tabs>
-          </Box>
-          <IconButton onClick={handleMenuOpen}><MoreVertIcon /></IconButton>
-          <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
-            <MenuItem onClick={handleMenuClose}>Profile</MenuItem>
-            <MenuItem onClick={handleMenuClose}>Settings</MenuItem>
-            <MenuItem onClick={handleMenuClose}>Logout</MenuItem>
-          </Menu>
+            <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                <Tabs value={tabValue} onChange={handleTabChange}>
+                {tabLabels.map((label, index) => (
+                    <Tab key={index} label={label} />
+                ))}
+                </Tabs>
+            </Box>
+            <IconButton onClick={handleMenuOpen}><MoreVertIcon /></IconButton>
+            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+                <MenuItem onClick={handleMenuClose}>Profile</MenuItem>
+                <MenuItem onClick={handleMenuClose}>Settings</MenuItem>
+                <MenuItem onClick={logout}>Logout</MenuItem>
+            </Menu>
         </Toolbar>
       </AppBar>
 
@@ -206,6 +214,5 @@ export default function App() {
         </DialogActions>
       </Dialog>
     </Box>
-    </ThemeProvider>
   );
 }
