@@ -1,17 +1,17 @@
 import { 
   Container,
-  CssBaseline,
   Box,
   Avatar,
   Typography,
   TextField,
   Button,
   Link,
-  Alert
+  Alert,
+  Fade
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { useState } from 'react';
-import { data, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 
 export default function SignUpPage() {
 
@@ -40,21 +40,32 @@ export default function SignUpPage() {
   const handleSignupSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    if (!username || !password || !confirmPassword) return;
+    if (!username || !password || !confirmPassword) {
+      setHasFailedSignup(true);
+      setFailedSignupMessage("All fields are required");
+      return;
+    }
     if (password !== confirmPassword) {
       setHasFailedSignup(true);
       setFailedSignupMessage("Passwords do not match");
       return;
     }
-    const res = await fetch('http://localhost:3000/api/v1/users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
+    let res = null;
+    try {
+      res = await fetch('http://localhost:3000/api/v1/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+    } catch (error) {
+      setHasFailedSignup(true);
+      setFailedSignupMessage('Network error. Please try again later.');
+      return;
+    }
+    
     console.log(res.status);
     const data = await res.json();
     if (data.error) {
-      console.log(data.error);
       setFailedSignupMessage(data.error);
     }
     if (res.status !== 201) {
@@ -72,14 +83,39 @@ export default function SignUpPage() {
   };
 
   return (
-    <Box sx={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      height: '100vh',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-    }}>
+    <Box
+      sx={{
+        position: 'relative',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      {hasFailedSignup && (
+        <Fade in={hasFailedSignup}>
+          <Box
+            sx={{
+              position: 'fixed',
+              top: '10%',
+              zIndex: 10,
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+            }}
+          > 
+          <Alert
+            variant="outlined"
+            severity="error"
+            sx={{ mb: 2, width: '100%', maxWidth: 400 }}
+          >
+            {failedSignupMessage}
+          </Alert>
+          </Box>
+        </Fade>
+      )}
       <Container
           component="main"
           maxWidth="xs"
@@ -93,13 +129,7 @@ export default function SignUpPage() {
               backdropFilter: 'blur(8px)',
           }}
       >
-        {hasFailedSignup && (
-        <Alert variant="outlined" severity="error">
-            {failedSignupMessage}
-        </Alert>
-        )}
         <Container component="main" maxWidth="xs">
-          <CssBaseline />
           <Box
             sx={{
               marginTop: 2,

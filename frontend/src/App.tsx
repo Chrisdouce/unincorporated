@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box, AppBar, Toolbar, Typography, Tabs, Tab, Button, IconButton,
   Menu, MenuItem, TextField, Paper
@@ -14,6 +14,7 @@ import LoginPage from './components/Login-Form';
 import { useUser } from "./context/UserContext";
 import SignUpPage from './components/Signup-Form';
 import { Navigate } from 'react-router';
+import SettingsPage from './components/Settings';
 
 interface CardData {
   name: string;
@@ -38,6 +39,7 @@ export default function App() {
     Diana: { default: 6, min: 2, max: 10 },
     Fishing: { default: 6, min: 2, max: 10 }
   };
+  
   const [partySize, setPartySize] = useState(partySizeOptions['Diana'].default);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -73,26 +75,57 @@ export default function App() {
           ? { ...card, count: card.count + 1 }
           : card
       )
-    );
+    )
   };
-  if (!token) {
-    return (
-    <BrowserRouter>
-        <Routes>
-          {/* Add redirect from root path */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="/login" element={<LoginPage onLogin={login} />} />
-          <Route path="/signup" element={<SignUpPage />} />
-        </Routes>
-      </BrowserRouter>
-    );
+
+  const testing = true;
+  if(testing){
+    if (!token) {
+      return (
+      <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Navigate to="/login" />} />
+            <Route path="/login" element={<LoginPage onLogin={login} />} />
+            <Route path="/signup" element={<SignUpPage />} />
+          </Routes>
+        </BrowserRouter>
+      );
+    } else {
+      return (<>
+        <AppBar position="static" color="default">
+          <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <img src="/assets/logo.jpg" alt="Logo" style={{ height: 40,  }} />
+                <Typography variant="h5">Unincorporated</Typography>
+              </Box>
+              <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                  <Tabs value={tabValue} onChange={handleTabChange}>
+                  {tabLabels.map((label, index) => (
+                      <Tab key={index} label={label} />
+                  ))}
+                  </Tabs>
+              </Box>
+              <IconButton onClick={handleMenuOpen}><MoreVertIcon /></IconButton>
+              <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+                  <MenuItem onClick={handleMenuClose}>Profile</MenuItem>
+                  <MenuItem onClick={handleMenuClose}>Settings</MenuItem>
+                  <MenuItem onClick={logout}>Logout</MenuItem>
+              </Menu>
+          </Toolbar>
+        </AppBar>
+        <SettingsPage />
+        </>);
+      }
   }
 
   return (
     <Box>
       <AppBar position="static" color="default">
         <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Typography>Logo</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <img src="/assets/logo.jpg" alt="Logo" style={{ height: 40,  }} />
+              <Typography variant="h5">Unincorporated</Typography>
+            </Box>
             <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'flex-end' }}>
                 <Tabs value={tabValue} onChange={handleTabChange}>
                 {tabLabels.map((label, index) => (
