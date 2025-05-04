@@ -29,6 +29,8 @@ export type GroupTable = {
     name: string;
     description: string;
     type: string;
+    size: number;
+    capacity: number;
     createdAt: Date;
     updatedAt: Date;
 }
