@@ -78,44 +78,17 @@ export default function App() {
     )
   };
 
-  const testing = true;
-  if(testing){
-    if (!token) {
-      return (
-      <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Navigate to="/login" />} />
-            <Route path="/login" element={<LoginPage onLogin={login} />} />
-            <Route path="/signup" element={<SignUpPage />} />
-          </Routes>
-        </BrowserRouter>
-      );
-    } else {
-      return (<>
-        <AppBar position="static" color="default">
-          <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <img src="./src/assets/logo.jpg" alt="Logo" style={{ height: 40 }} />
-                <Typography variant="h5">Unincorporated</Typography>
-              </Box>
-              <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'flex-end' }}>
-                  <Tabs value={tabValue} onChange={handleTabChange}>
-                  {tabLabels.map((label, index) => (
-                      <Tab key={index} label={label} />
-                  ))}
-                  </Tabs>
-              </Box>
-              <IconButton onClick={handleMenuOpen}><MoreVertIcon /></IconButton>
-              <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
-                  <MenuItem onClick={handleMenuClose}>Profile</MenuItem>
-                  <MenuItem onClick={handleMenuClose}>Settings</MenuItem>
-                  <MenuItem onClick={logout}>Logout</MenuItem>
-              </Menu>
-          </Toolbar>
-        </AppBar>
-        <SettingsPage />
-        </>);
-      }
+  if (!token) {
+    return (
+    <BrowserRouter>
+        <Routes>
+          {/* Add redirect from root path */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/login" element={<LoginPage onLogin={login} />} />
+          <Route path="/signup" element={<SignUpPage />} />
+        </Routes>
+      </BrowserRouter>
+    );
   }
 
   return (
@@ -123,7 +96,7 @@ export default function App() {
       <AppBar position="static" color="default">
         <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <img src="/assets/logo.jpg" alt="Logo" style={{ height: 40,  }} />
+              <img src="./src/assets/logo.jpg" alt="Logo" style={{ height: 40 }} />
               <Typography variant="h5">Unincorporated</Typography>
             </Box>
             <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'flex-end' }}>
