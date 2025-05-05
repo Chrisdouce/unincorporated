@@ -392,3 +392,99 @@ describe('Friend routes', () => {
         assert.strictEqual(res.status, 404);
     });
 });
+
+describe('Settings routes', () => {
+    before(async () => {
+        // Create a test user
+        let res = await request.post('/api/v1/users').send({
+            username: 'testuser',
+            password: 'password123'
+        });
+        assert.strictEqual(res.status, 201);
+        const fetchedUser = await getUserByUsername('testuser');
+        if (!fetchedUser) {
+            assert.fail('User not found');
+        }
+    });
+    
+    after(async () => {
+        const user = await getUserByUsername('testuser');
+        if (!user) {
+            assert.fail('User not found');
+        }
+        await request.delete(`/api/v1/users/${user.userId}`).send();
+        const users = await getAllUsers();
+        if(users && users.length > 0){
+            assert.fail('Users still exist in the database');
+        }
+    });
+
+    test('GET /users/:userId/settings returns the settings', async () => {
+        const user = await getUserByUsername('testuser');
+        if (!user) {
+            assert.fail('User not found');
+        }
+        let res = await request.post('/api/v1/users/login').send({
+            username: 'testuser',
+            password: 'password123'
+        });
+        res = await request.get(`/api/v1/users/${user.userId}/settings`).set('Authorization', `Bearer ${res.body.token}`).send();
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.darkMode, false);
+        assert.strictEqual(res.body.ign, '');
+    });
+
+    test('PUT /users/:userId/settings updates the settings', async () => {
+        const user = await getUserByUsername('testuser');
+        if (!user) {
+            assert.fail('User not found');
+        }
+        let res = await request.post('/api/v1/users/login').send({
+            username: 'testuser',
+            password: 'password123'
+        });
+        const token = res.body.token;
+        res = await request.put(`/api/v1/users/${user.userId}/settings`).set('Authorization', `Bearer ${token}`).send({
+            darkMode: true,
+            ign: 'cat'
+        });
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.darkMode, true);
+        assert.strictEqual(res.body.ign, 'cat');
+    });
+
+    test('PUT /users/:userId/settings returns 400 for bad data', async () => {
+        const user = await getUserByUsername('testuser');
+        if (!user) {
+            assert.fail('User not found');
+        }
+        let res = await request.post('/api/v1/users/login').send({
+            username: 'testuser',
+            password: 'password123'
+        });
+        const token = res.body.token;
+        res = await request.put(`/api/v1/users/${user.userId}/settings`).set('Authorization', `Bearer ${token}`).send({
+            darkMode: 'not_a_boolean',
+            ign: '123'
+        });
+        assert.strictEqual(res.status, 400);
+        assert.strictEqual(res.body.error, 'darkMode must be a boolean');
+        res = await request.put(`/api/v1/users/${user.userId}/settings`).set('Authorization', `Bearer ${token}`).send({
+            ign: '123'
+        });
+        assert.strictEqual(res.status, 400);
+        assert.strictEqual(res.body.error, 'darkMode is required');
+        res = await request.put(`/api/v1/users/${user.userId}/settings`).set('Authorization', `Bearer ${token}`).send({
+            darkMode: true,
+            ign: 123
+        });
+        assert.strictEqual(res.status, 400);
+        assert.strictEqual(res.body.error, 'ign must be a string');
+        res = await request.put(`/api/v1/users/${user.userId}/settings`).set('Authorization', `Bearer ${token}`).send({
+            darkMode: true,
+            ign: '123'.repeat(256)
+        });
+        assert.strictEqual(res.status, 400);
+        assert.strictEqual(res.body.error, 'ign must be between 1 and 255 characters');
+    });
+});
