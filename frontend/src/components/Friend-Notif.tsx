@@ -36,6 +36,10 @@ export default function FriendNotif() {
                 method: 'GET',
                 headers: { 'Authorization': `Bearer ${token}` },
             });
+            if (res.status === 401) {
+                logout();
+                return;
+            }
             if (res.status === 200) {
                 const data = await res.json();
                 if (Array.isArray(data)) {

@@ -34,12 +34,20 @@ export default function PersonalPage({ openedUserId }: { openedUserId: string })
                     method: 'GET',
                     headers: { 'Authorization': `Bearer ${token}` },
                 });
+                if (res.status === 401) {
+                  logout();
+                  return;
+                }
                 if (res.status === 200) {
                     const data = await res.json();
                     const ignRes = await fetch(`http://localhost:3000/api/v1/users/${openedUserId}/settings`, {
                       method: 'GET',
                       headers: { 'Authorization': `Bearer ${token}` },
                     });
+                    if (ignRes.status === 401) {
+                      logout();
+                      return;
+                    }
                     const settingsData = await ignRes.json();
                     data.ign = settingsData.ign;
                     data.pictureUrl = `https://crafatar.com/avatars/${settingsData.minecraftUUID}?size=256&default=MHF_Steve&overlay`;
@@ -106,7 +114,6 @@ export default function PersonalPage({ openedUserId }: { openedUserId: string })
                 body: JSON.stringify({ "friendId": openedUserId }),
             });
             if (res.status === 201) {
-                console.log('Friend request sent successfully!');
                 setCanSendFriendRequest(false);
                 setToolTipMessage("Friend request pending.");
             } else {
@@ -133,8 +140,6 @@ export default function PersonalPage({ openedUserId }: { openedUserId: string })
                 },
                 body: JSON.stringify({ "friendId": openedUserId }),
             });
-            const data = await res.json();
-            console.log(data.error);
             if (res.status === 200) {
                 console.log('Friend removed successfully!');
                 setIsFriend(false);
