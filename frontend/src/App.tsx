@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, AppBar, Toolbar, Typography, Tabs, Tab, Button, IconButton,
-  Menu, MenuItem, TextField, Paper
+  Menu, MenuItem, TextField, Paper,
+  Tooltip
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import Dialog from '@mui/material/Dialog';
@@ -9,6 +10,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Select from '@mui/material/Select';
+import { Grid } from '@mui/material';
 import { Route, Routes, Navigate } from "react-router";
 import LoginPage from './components/Login-Form';
 import { useUser } from "./context/UserContext";
@@ -35,6 +37,8 @@ export default function App() {
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [groupToLeave, setGroupToLeave] = useState<string | null>(null);
   const [userGroup, setUserGroup] = useState<{ groupId: string } | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editGroup, setEditGroup] = useState<CardData | null>(null);
   const tabLabels = ["Party Finder", "Guides", "Friends"];
   const { token, userId, isLoading, login, logout } = useUser();
   const navigate = useNavigate();
@@ -63,6 +67,11 @@ export default function App() {
   const handleDeleteClick = (groupName: string) => {
     setGroupToDelete(groupName);
     setDeleteDialogOpen(true);
+  };
+
+  const handleEditClick = (group: CardData) => {
+    setEditGroup(group);
+    setEditDialogOpen(true);
   };
 
   useEffect(() => {
@@ -221,6 +230,42 @@ export default function App() {
     }
   };
 
+  const handleConfirmEdit = async () => {
+    if (!editGroup) return;
+    
+    if (editGroup.description === '') {
+      editGroup.description = 'No description';
+    }
+  
+    if (editGroup.capacity < editGroup.size) {
+      alert("Capacity cannot be less than the current group size.");
+      return;
+    }
+  
+    try {
+      const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/group`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(editGroup),
+      });
+  
+      if (res.ok) {
+        await fetchGroups();
+      } else {
+        const error = await res.json();
+        console.error("Error updating group:", error.error);
+      }
+    } catch (err) {
+      console.error("Error updating group:", err);
+    } finally {
+      setEditDialogOpen(false);
+      setEditGroup(null);
+    }
+  };
+
   if (!token) {
     return (
       <Routes>
@@ -264,63 +309,101 @@ export default function App() {
           <Box sx={{ flexGrow: 1 }}>
             <TextField fullWidth label="Search" variant="outlined" />
           </Box>
-          <Button variant="outlined">Filter</Button>
-        </Box>
+        <Button variant="outlined">Filter</Button>
+      </Box>
 
         {cards.map((card, index) => (
           <Box
-            key={index}
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: 2,
-              p: 2,
-              border: '2px solid',
-              borderColor: 'black',
-              borderRadius: 2,
-              mb: 2,
-            }}
-          >
-            <Typography>{card.type}</Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          key={index}
+          sx={{
+            p: 3,
+            border: '1px solid',
+            borderColor: 'gray',
+            borderRadius: 3,
+            mb: 3,
+            display: 'grid',
+            gridAutoFlow: 'row',
+            gridTemplateColumns: 'repeat(10, 1fr)',
+            gap: 2,
+          }}
+        >
+          {/* LEFT SIDE: Name + Count + Avatars */}
+          <Box sx={{ order: 1, gridColumn: 'span 1', display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+              {card.name}
+            </Typography>
+          </Box>
+
+          {/* MIDDLE: Count */}
+          <Box sx={{ order: 2, gridColumn: 'span 1', display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+              {card.size}/{card.capacity}
+            </Typography>
+          </Box>
+
+          {/* RIGHT SIDE: Avatars */}
+          <Box sx={{ order: 3, gridColumn: 'span 3', display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', gap: 1 }}>
               {[...Array(card.capacity)].map((_, i) => (
                 <Box
                   key={i}
                   sx={{
-                    width: 40,
-                    height: 40,
+                    width: 35,
+                    height: 35,
                     border: '2px solid',
-                    borderColor: i < card.size ? 'yellow' : 'black'
+                    borderColor: i < card.size ? 'yellow' : 'gray',
+                    borderRadius: 1,
                   }}
                 />
               ))}
             </Box>
-            <Typography>{card.description}</Typography>
-            <Typography>{card.size}/{card.capacity}</Typography>
-
-            {card.leaderId === userId ? (
-              <Button
-                variant="outlined"
-                color="error"
-                onClick={() => handleDeleteClick(card.name)}
-              >
-                Delete
-              </Button>
-            ) : userGroup?.groupId === card.groupId ? (
-              <Button variant="outlined" color="error" onClick={() => handleLeave(card.groupId)}>
-                Leave
-              </Button>
-            ) : !userGroup && card.size < card.capacity ? (
-              <Button variant="outlined" onClick={() => handleJoin(index, card.groupId)}>
-                Join
-              </Button>
-            ) : (
-              null
-            )}
           </Box>
+
+          <Box sx={{ order: 4, gridColumn: 'span 4', display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
+            <Tooltip title={card.description}>
+              <Typography
+                variant="body1"
+                noWrap
+                sx={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  maxWidth: '95%',
+                  cursor: 'pointer'
+                }}
+              >
+                {card.description}
+              </Typography>
+            </Tooltip>
+          </Box>
+        
+          {/* RIGHT SIDE: Buttons */}
+          <Box sx={{ order: 5, gridColumn: 'span 1', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              {card.leaderId === userId ? (
+                <>
+                  <Button variant="outlined" size="medium" sx={{ fontSize: '1rem' }} onClick={() => handleEditClick(card)}>
+                    Edit
+                  </Button>
+                  <Button variant="outlined" size="medium" color="error" sx={{ fontSize: '1rem' }} onClick={() => handleDeleteClick(card.name)}>
+                    Delete
+                  </Button>
+                </>
+              ) : userGroup?.groupId === card.groupId ? (
+                <Button variant="outlined" size="medium" color="error" sx={{ fontSize: '1rem' }} onClick={() => handleLeave(card.groupId)}>
+                  Leave
+                </Button>
+              ) : !userGroup && card.size < card.capacity ? (
+                <Button variant="outlined" size="medium" sx={{ fontSize: '1rem' }} onClick={() => handleJoin(index, card.groupId)}>
+                  Join
+                </Button>
+              ) : null}
+            </Box>
+          </Box>
+        </Box>
         ))}
       </Box>
+      
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
         <form onSubmit={(e) => { e.preventDefault(); handleCreateCard(); }}>
           <DialogTitle>Create Party</DialogTitle>
@@ -397,6 +480,80 @@ export default function App() {
           <Button onClick={() => setLeaveDialogOpen(false)}>Cancel</Button>
           <Button color="error" onClick={handleConfirmLeave}>Leave</Button>
         </DialogActions>
+      </Dialog>
+
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)}>
+        <form onSubmit={(e) => { e.preventDefault(); handleConfirmEdit(); }}>
+          <DialogTitle>Edit Group</DialogTitle>
+          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <Select
+              value={editGroup?.type || ''}
+              onChange={(e) =>
+                setEditGroup(prev =>
+                  prev ? { ...prev, type: e.target.value, name: e.target.value } : null
+                )
+              }
+              fullWidth
+            >
+              {Object.entries(partySizeOptions).map(([name, { default: size }]) => (
+                <MenuItem key={name} value={name}>
+                  {`${name} (${size})`}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select
+              value={editGroup?.capacity || ''}
+              onChange={(e) =>
+                setEditGroup(prev =>
+                  prev ? { ...prev, capacity: Number(e.target.value) } : null
+                )
+              }
+              fullWidth
+            >
+              {editGroup &&
+                Array.from(
+                  {
+                    length:
+                      partySizeOptions[editGroup.type]?.max -
+                      partySizeOptions[editGroup.type]?.min +
+                      1,
+                  },
+                  (_, i) => partySizeOptions[editGroup.type]?.min + i
+                ).map((size) => (
+                  <MenuItem key={size} value={size}>
+                    Party Size: {size}
+                  </MenuItem>
+                ))}
+            </Select>
+
+            <TextField
+              label="Description"
+              fullWidth
+              multiline
+              minRows={2}
+              value={editGroup?.description || ''}
+              onChange={(e) =>
+                setEditGroup(prev =>
+                  prev ? { ...prev, description: e.target.value } : null
+                )
+              }
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+            <Button
+              variant="contained"
+              type="submit"
+              disabled={
+                editGroup?.capacity !== undefined &&
+                editGroup.capacity < editGroup.size
+              }
+            >
+              Save
+            </Button>
+          </DialogActions>
+        </form>
       </Dialog>
     </Box>
   );

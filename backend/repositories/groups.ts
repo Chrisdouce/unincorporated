@@ -126,6 +126,7 @@ export async function updateGroup(group: Omit<Group, 'createdAt' | 'updatedAt'>)
                 name: group.name,
                 description: group.description,
                 type: group.type,
+                capacity: group.capacity,
                 updatedAt: new Date()
             })
             .where('groupId', '=', group.groupId)
