@@ -16,7 +16,6 @@ import LoginPage from './components/Login-Form';
 import { useUser } from "./context/UserContext";
 import SignUpPage from './components/Signup-Form';
 
-import { Navigate } from 'react-router';
 import SettingsPage from './components/Settings';
 import PersonalPage from './components/Personal-Page';
 import FriendNotif from './components/Friend-Notif';
@@ -45,9 +44,11 @@ export default function App() {
   const [editGroup, setEditGroup] = useState<CardData | null>(null);
   const tabLabels = ["Party Finder", "Guides", "Friends"];
   const { token, isLoading, login, logout } = useUser();
+  const [exampleUsers, setExampleUsers] = useState<string[]>([]);
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
 
   const partySizeOptions: Record<string, { default: number; min: number; max: number }> = {
-    Kuddra: { default: 4, min: 2, max: 4 },
+    Kuudra: { default: 4, min: 2, max: 4 },
     Dungeons: { default: 5, min: 2, max: 5 },
     Diana: { default: 6, min: 2, max: 10 },
     Fishing: { default: 6, min: 2, max: 10 },
@@ -63,6 +64,7 @@ export default function App() {
             return;
         }
         const decodedToken = JSON.parse(atob(token.split('.')[1]));
+        const userId = decodedToken.userId;
         const users = await fetch(`http://localhost:3000/api/v1/users`, {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${token}` },
@@ -70,16 +72,40 @@ export default function App() {
         const data = await users.json();
         const userIds = data.map((user: { userId: string }) => user.userId);
         setExampleUsers(userIds);
+        setCurrentUser(userId);
     } catch (error) {
         console.error('Error fetching settings:', error);
     }
   }
   fetchUsers();
-}, [token]);
-  
+  fetchGroups();
+}, [token, logout]);
+
+useEffect(() => {
+  if (!currentUser) return;
+
+  const fetchUserGroup = async () => {
+    try {
+      const res = await fetch(`http://localhost:3000/api/v1/users/${currentUser}/group`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const group = await res.json();
+        setUserGroup(group);
+      } else if (res.status === 404) {
+        setUserGroup(null);
+      }
+    } catch (err) {
+      console.error("Failed to fetch user group:", err);
+    }
+  };
+  fetchUserGroup();
+}, [currentUser, token]);
   const [partySize, setPartySize] = useState(partySizeOptions['Diana'].default);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    console.log(currentUser);
+    console.log(userGroup);
     setTabValue(newValue);
   };
 
@@ -100,11 +126,6 @@ export default function App() {
     setEditGroup(group);
     setEditDialogOpen(true);
   };
-
-  useEffect(() => {
-    fetchGroups();
-    fetchUserGroup();
-  }, []);
 
   async function fetchGroups() {
     try {
@@ -135,7 +156,7 @@ export default function App() {
     };
     console.log(JSON.stringify(newCard));
 
-    const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/group`, {
+    const res = await fetch(`http://localhost:3000/api/v1/users/${currentUser}/group`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -146,14 +167,14 @@ export default function App() {
     if (res.status === 401) {
       logout();
     }
-    navigate('/');
-    setDialogOpen(false);
+      setDialogOpen(false);
     await fetchGroups();
+    await fetchUserGroup();
   };
 
   const handleJoin = async (index: number, groupId: string) => {
     try {
-      const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/group/${groupId}`, {
+      const res = await fetch(`http://localhost:3000/api/v1/users/${currentUser}/group/${groupId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -179,7 +200,7 @@ export default function App() {
 
   const fetchUserGroup = async () => {
     try {
-      const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/group`, {
+      const res = await fetch(`http://localhost:3000/api/v1/users/${currentUser}/group`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -204,7 +225,7 @@ export default function App() {
     if (!groupToLeave) return;
   
     try {
-      const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/group/${groupToLeave}`, {
+      const res = await fetch(`http://localhost:3000/api/v1/users/${currentUser}/group/${groupToLeave}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -228,7 +249,6 @@ export default function App() {
     } finally {
       setLeaveDialogOpen(false);
       setGroupToLeave(null);
-      navigate('/');
     }
   };
 
@@ -236,7 +256,7 @@ export default function App() {
     if (!groupToDelete) return;
   
     try {
-      const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/group`, {
+      const res = await fetch(`http://localhost:3000/api/v1/users/${currentUser}/group`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -245,6 +265,7 @@ export default function App() {
   
       if (res.ok) {
         await fetchGroups();
+        await fetchUserGroup();
       } else {
         const error = await res.json();
         console.error("Error deleting group:", error.error);
@@ -270,7 +291,7 @@ export default function App() {
     }
   
     try {
-      const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/group`, {
+      const res = await fetch(`http://localhost:3000/api/v1/users/${currentUser}/group`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -332,7 +353,7 @@ export default function App() {
 
       <Box sx={{ padding: 2, px: 5, pt: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, pb: 2 }}>
-        <Button variant="outlined" onClick={() => setDialogOpen(true)}>Create</Button>
+        <Button variant="outlined" onClick={() => setDialogOpen(true)} disabled={ userGroup?.groupId !== undefined }>Create</Button>
           <Box sx={{ flexGrow: 1 }}>
             <TextField fullWidth label="Search" variant="outlined" />
           </Box>
@@ -407,7 +428,7 @@ export default function App() {
           {/* RIGHT SIDE: Buttons */}
           <Box sx={{ order: 5, gridColumn: 'span 1', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
             <Box sx={{ display: 'flex', gap: 2 }}>
-              {card.leaderId === userId ? (
+              {card.leaderId === currentUser ? (
                 <>
                   <Button variant="outlined" size="medium" sx={{ fontSize: '1rem' }} onClick={() => handleEditClick(card)}>
                     Edit
@@ -424,6 +445,8 @@ export default function App() {
                 <Button variant="outlined" size="medium" sx={{ fontSize: '1rem' }} onClick={() => handleJoin(index, card.groupId)}>
                   Join
                 </Button>
+              ) : card.size >= card.capacity ? (
+                <Typography>Party if Full!</Typography>
               ) : null}
             </Box>
           </Box>
