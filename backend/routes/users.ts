@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { createUser, getAllUsers, getUserById, getUserByUsername, updateUser, deleteUser, getAllFriendsByUserId, addFriend, removeFriend, getFriendByUserId } from '../repositories/users.js';
+import { createUser, getAllUsers, getUserById, getUserByUsername, updateUser, deleteUser, updateUserSettings, getUserSettings } from '../repositories/users.js';
 import 'dotenv/config';
 
 const router = express.Router();
@@ -87,7 +87,7 @@ router.post('/users', async (req, res, next) => {
             bcrypt.hash(req.body.password, salt, async function(_err: any, hash: any) {
                 const user = await createUser({
                     "username": req.body.username,
-                    "hashedPassword": hash,
+                    "hashedPassword": hash
                 });
                 res.status(201).json(user);
             });
@@ -148,7 +148,7 @@ router.put('/users/:userId', async (req, res, next) => {
         } else if(req.body.username.trim() === '') {
             res.status(400).json({ error: 'username must not be empty' });
             return;
-        } else if (await getUserByUsername(req.body.username)) {
+        } else if (await getUserByUsername(req.body.username) && req.body.username !== user.username) {
             res.status(400).json({ error: 'username already exists' });
             return;
         }
@@ -166,14 +166,17 @@ router.put('/users/:userId', async (req, res, next) => {
             res.status(400).json({ error: 'password must not be empty' });
             return;
         }
-        const existingUser = await getUserByUsername(req.body.username);
-        if (existingUser && existingUser.userId !== req.params.userId) {
-            res.status(400).json({ error: 'username already exists' });
-            return;
-        }
-
-        const updatedUser = await updateUser(req.params.userId, req.body.username, req.body.password);
-        res.status(200).json(updatedUser);
+        const saltRounds = 10;
+        bcrypt.genSalt(saltRounds, function(_err: any, salt: any) {
+            bcrypt.hash(req.body.password, salt, async function(_err: any, hash: any) {
+                const user = await updateUser(
+                    req.params.userId,
+                    req.body.username,
+                    hash
+                );
+                res.status(200).json(user);
+            });
+        });
     } catch (err) {
         next(err);
     }
@@ -232,7 +235,7 @@ router.post('/users/login', async (req, res, next) => {
     });
 });
 
-router.get('/users/:userId/friends', verifyToken, async (req, res, next) => {
+router.get('/users/:userId/settings', verifyToken, async (req, res, next) => {
     //Check if userId is a valid UUID
     if (!isUUID(req.params.userId)) {
         res.status(404).json({ error: 'Invalid UUID' });
@@ -244,11 +247,11 @@ router.get('/users/:userId/friends', verifyToken, async (req, res, next) => {
         return;
     }
     
-    const friends = await getAllFriendsByUserId(user.userId)
-    res.status(200).json(friends);
+    const settings = await getUserSettings(user.userId);
+    res.status(200).json(settings);
 });
 
-router.post('/users/:userId/friends', verifyToken, async (req, res, next) => {
+router.put('/users/:userId/settings', verifyToken, async (req, res, next) => {
     //Check if userId is a valid UUID
     if (!isUUID(req.params.userId)) {
         res.status(404).json({ error: 'Invalid UUID' });
@@ -259,108 +262,56 @@ router.post('/users/:userId/friends', verifyToken, async (req, res, next) => {
         res.status(404).json({ error: 'User not found' });
         return;
     }
-
-    const friendId = req.body.friendId;
-    if (!friendId) {
-        res.status(400).json({ error: 'friendId is required' });
+    //Validation for darkMode
+    if (req.body.darkMode === undefined) {
+        res.status(400).json({ error: 'darkMode is required' });
         return;
     }
-    if (typeof friendId !== 'string') {
-        res.status(400).json({ error: 'friendId must be a string' });
-        return;
-    }
-
-    if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(friendId)) {
-        res.status(400).json({ error: 'friendId must be a valid UUID' });
-        return;
-    }
-    const friend = await getUserById(friendId);
-    if (!friend) {
-        res.status(404).json({ error: 'Friend not found' });
-        return;
-    }
-    if (user.userId === friend.userId) {
-        res.status(400).json({ error: 'You cannot add yourself as a friend' });
-        return;
-    }
-    if (await getFriendByUserId(user.userId, friend.userId)) {
-        res.status(400).json({ error: 'You are already friends' });
-        return;
-    }
-
-    const newFriend = await addFriend(user.userId, friend.userId);
-    res.status(201).json(newFriend);
-});
-
-router.get('/users/:userId/friends/:friendId', verifyToken, async (req, res, next) => {
-    //Check if userId is a valid UUID
-    if (!isUUID(req.params.userId)) {
-        res.status(404).json({ error: 'Invalid UUID' });
-        return;
-    }
-    const user = await getUserById(req.params.userId);
-    if (!user) {
-        res.status(404).json({ error: 'User not found' });
-        return;
-    }
-    //Check if friendId is a valid UUID
-    if (!isUUID(req.params.friendId)) {
-        res.status(400).json({ error: 'Invalid UUID' });
-        return;
-    }
-    const friend = await getUserById(req.params.friendId);
-    if (!friend) {
-        res.status(404).json({ error: 'Friend not found' });
-        return;
-    }
-    const friendRelation = await getFriendByUserId(user.userId, friend.userId);
-    if (!friendRelation) {
-        res.status(404).json({ error: 'Friend not found' });
-        return;
-    }
-    res.status(200).json(friendRelation);
-});
-
-router.delete('/users/:userId/friends', verifyToken, async (req, res, next) => {
-    //Check if userId is a valid UUID
-    if (!isUUID(req.params.userId)) {
-        res.status(404).json({ error: 'Invalid UUID' });
-        return;
-    }
-    const user = await getUserById(req.params.userId);
-    if (!user) {
-        res.status(404).json({ error: 'User not found' });
+    if (typeof req.body.darkMode !== 'boolean') {
+        res.status(400).json({ error: 'darkMode must be a boolean' });
         return;
     }
     
-    //Validation for friendId
-    if (!req.body.friendId) {
-        res.status(400).json({ error: 'friendId is required' });
+    //Validation for ign
+    if (!req.body.ign) {
+        res.status(400).json({ error: 'ign is required' });
         return;
     }
-    if (typeof req.body.friendId !== 'string') {
-        res.status(400).json({ error: 'friendId must be a string' });
+    if (typeof req.body.ign !== 'string') {
+        res.status(400).json({ error: 'ign must be a string' });
         return;
     }
-    if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.body.friendId)) {
-        res.status(400).json({ error: 'Invalid UUID' });
+    if (req.body.ign.length < 0 || req.body.ign.length > 255) {
+        res.status(400).json({ error: 'ign must be between 1 and 255 characters' });
+        return;
+    } else if (req.body.ign.trim() === '') {
+        res.status(400).json({ error: 'ign must not be empty' });
+        return;
+    }
+    let minecraftUUID = null;
+    try {
+        let api = await fetch(`https://api.mojang.com/users/profiles/minecraft/${req.body.ign}`);
+        const data = await api.json();
+        api = await fetch(`https://crafatar.com/avatars/${data.id}?size=256&overlay`);
+        if (!api.ok) {
+            res.status(400).json({ error: 'ign must be a valid Minecraft username' });
+            return;
+        } else {
+            minecraftUUID = data.id;
+        }
+    } catch (error) {
+        res.status(400).json({ error: 'ign must be a valid Minecraft username' });
         return;
     }
 
-    const friendId = req.body.friendId;
-    const friend = await getUserById(friendId);
-    if (!friend) {
-        res.status(404).json({ error: 'Friend not found' });
-        return;
-    }
-
-    const friendRelation = await getFriendByUserId(user.userId, friend.userId);
-    if (!friendRelation) {
-        res.status(404).json({ error: 'Friend not found' });
-        return;
-    }
-    const deletedFriend = await removeFriend(user.userId, friend.userId);
-    res.status(200).json(deletedFriend);
+    const updatedSettings = await updateUserSettings({
+        userId: req.params.userId,
+        darkMode: req.body.darkMode,
+        ign: req.body.ign,
+        minecraftUUID: minecraftUUID
+    });
+    res.status(200).json(updatedSettings);
 });
+
 
 export default router;

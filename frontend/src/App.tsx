@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import {
   Box, AppBar, Toolbar, Typography, Tabs, Tab, Button, IconButton,
   Menu, MenuItem, TextField, Paper,
-  Tooltip
+  Tooltip, Icon
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import Dialog from '@mui/material/Dialog';
@@ -15,7 +15,11 @@ import { Route, Routes, Navigate } from "react-router";
 import LoginPage from './components/Login-Form';
 import { useUser } from "./context/UserContext";
 import SignUpPage from './components/Signup-Form';
-import { useNavigate } from "react-router";
+
+import { Navigate } from 'react-router';
+import SettingsPage from './components/Settings';
+import PersonalPage from './components/Personal-Page';
+import FriendNotif from './components/Friend-Notif';
 
 interface CardData {
   name: string;
@@ -40,8 +44,7 @@ export default function App() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editGroup, setEditGroup] = useState<CardData | null>(null);
   const tabLabels = ["Party Finder", "Guides", "Friends"];
-  const { token, userId, isLoading, login, logout } = useUser();
-  const navigate = useNavigate();
+  const { token, isLoading, login, logout } = useUser();
 
   const partySizeOptions: Record<string, { default: number; min: number; max: number }> = {
     Kuddra: { default: 4, min: 2, max: 4 },
@@ -50,6 +53,30 @@ export default function App() {
     Fishing: { default: 6, min: 2, max: 10 },
     Other: { default: 6, min: 2, max: 10 },
   };
+
+  useEffect(() => {
+    async function fetchUsers() {
+    try {
+        if (isLoading) return;
+        if (!token) {
+            logout();
+            return;
+        }
+        const decodedToken = JSON.parse(atob(token.split('.')[1]));
+        const users = await fetch(`http://localhost:3000/api/v1/users`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        const data = await users.json();
+        const userIds = data.map((user: { userId: string }) => user.userId);
+        setExampleUsers(userIds);
+    } catch (error) {
+        console.error('Error fetching settings:', error);
+    }
+  }
+  fetchUsers();
+}, [token]);
+  
   const [partySize, setPartySize] = useState(partySizeOptions['Diana'].default);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -265,7 +292,7 @@ export default function App() {
       setEditGroup(null);
     }
   };
-
+            
   if (!token) {
     return (
       <Routes>

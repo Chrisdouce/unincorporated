@@ -5,6 +5,7 @@ export type Group = {
     groupId: string;
     leaderId: string;
     name: string;
+    size: number;
     description: string;
     type: string;
     size: number;
@@ -85,6 +86,7 @@ export async function createGroup(group: Omit<Group, 'groupId' | 'createdAt' | '
             .values({ 
                 leaderId: group.leaderId as any,
                 name: group.name,
+                size: group.size,
                 description: group.description,
                 type: group.type,
                 size: group.size,

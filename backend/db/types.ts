@@ -6,6 +6,7 @@ export type Database = {
   group: GroupTable;
   post: PostTable;
   reaction: ReactionTable;
+  settings: SettingsTable;
 };
 
 export type UserTable = {
@@ -14,19 +15,29 @@ export type UserTable = {
   hashedPassword: string;
   createdAt: Date;
   updatedAt: Date;
-  groupId: string;
+  groupId: string | null;
+};
+
+export type SettingsTable = {
+  userId: ColumnType<string, string, undefined>;
+  darkMode: boolean;
+  ign: string;
+  minecraftUUID: string | null;
 };
 
 export type FriendTable = {
   friendAId: ColumnType<string, string, undefined>;
   friendBId: ColumnType<string, string, undefined>;
+  status: string;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 export type GroupTable = {
     groupId: Generated<string>;
     leaderId: ColumnType<string, string, undefined>;
     name: string;
+    size: number;
     description: string;
     type: string;
     size: number;

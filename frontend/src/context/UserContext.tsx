@@ -4,7 +4,7 @@ export type UserContextType = {
   token: string | null;
   userId: string | null;
   isLoading: boolean;
-  login: (token: string, userId: string) => void;
+  login: (token: string, rememberMe: boolean) => void;
   logout: () => void;
 };
 
@@ -31,11 +31,11 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
     setIsLoading(false);
   }, []);
 
-  function login(token: string, userId: string): void {
+  function login(token: string, rememberMe: boolean): void {
     setToken(token);
-    setUserId(userId);
-    if (token) {
+    if (token && rememberMe) {
       localStorage.setItem('token', token);
+      sessionStorage.setItem('token', token);
     }
     if (userId) {
       localStorage.setItem('userId', userId);
@@ -43,6 +43,7 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
   }
 
   function logout(): void {
+    console.log('Logging out...');
     setToken(null);
     setUserId(null);
     localStorage.removeItem('token');
