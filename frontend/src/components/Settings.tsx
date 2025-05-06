@@ -1,168 +1,220 @@
 import { useEffect, useState } from 'react';
-import { Container, Typography, FormControlLabel, Switch, TextField, Button, Alert, Box, Fade } from '@mui/material';
+import {
+    Container, Typography, FormControlLabel, Switch, TextField,
+    Button, Alert, Box, Fade, Tabs, Tab, Dialog, DialogTitle,
+    DialogContent, DialogActions
+} from '@mui/material';
 import { useUser } from "../context/UserContext";
 import { Setting } from '../types/Settings';
 
 export default function SettingsPage() {
     const { token, logout, isLoading } = useUser();
+    const [tabIndex, setTabIndex] = useState(0);
+
     const [darkMode, setDarkMode] = useState(false);
-    const [ign, setIgn] = useState(''); 
-    const [hasFailedSettings, setHasFailedSettings] = useState(false);
-    const [hasUpdatedSettings, setHasUpdatedSettings] = useState(false);
-    const [failedSettingsMessage, setFailedSettingsMessage] = useState('');
+    const [ign, setIgn] = useState('');
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+
+    const [hasFailed, setHasFailed] = useState(false);
+    const [hasUpdated, setHasUpdated] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [passwordMismatch, setPasswordMismatch] = useState(false);
+
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
     useEffect(() => {
         async function fetchSettings() {
+            if (!token) return logout();
             try {
-                if (!token) {
-                    logout();
-                    return;
-                }
-                const decodedToken = JSON.parse(atob(token.split('.')[1]));
-                const userId = decodedToken.userId;
+                const decoded = JSON.parse(atob(token.split('.')[1]));
+                const userId = decoded.userId;
+
                 const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/settings`, {
-                    method: 'GET',
-                    headers: { 'Authorization': `Bearer ${token}` },
+                    headers: { Authorization: `Bearer ${token}` },
                 });
-                if (res.status === 200) {
-                    const data = await res.json();
-                    setDarkMode(data.darkMode ?? false);
-                    setIgn(data.ign ?? '');
-                } else {
-                    console.error('Failed to fetch settings:', res.statusText);
-                    setHasFailedSettings(true);
-                    setFailedSettingsMessage('Failed to fetch settings. Please try again later.');
-                }
-            } catch (error) {
-                console.error('Error fetching settings:', error);
-                setHasFailedSettings(true);
-                setFailedSettingsMessage('An error occurred while fetching settings. Please try again later.');
+
+                if (!res.ok) throw new Error('Failed to fetch settings');
+
+                const data = await res.json();
+                setDarkMode(data.darkMode ?? false);
+                setIgn(data.ign ?? '');
+                setUsername(data.username ?? '');
+            } catch (err: any) {
+                setHasFailed(true);
+                setErrorMessage(err.message || 'Error fetching settings');
             }
         }
+
         fetchSettings();
     }, [token]);
-    
+
     if (isLoading) return null;
+
     async function updateSettings() {
+        if (!token) return logout();
         try {
-            if (!token) {
-                logout();
-                return;
-            }
-            const decodedToken = JSON.parse(atob(token.split('.')[1]));
-            const userId = decodedToken.userId;
-            const newSettings: Pick<Setting, 'userId' | 'darkMode' | 'ign'> = {
-                userId: userId,
-                darkMode: darkMode,
-                ign: ign,
+            const decoded = JSON.parse(atob(token.split('.')[1]));
+            const userId = decoded.userId;
+            const settings: Pick<Setting, 'userId' | 'darkMode' | 'ign'> = {
+                userId, darkMode, ign
             };
+
             const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/settings`, {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json', 
-                    'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(newSettings),
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(settings),
             });
+
             const data = await res.json();
-            if (res.status === 401) {
-                logout();
-                return;
-            }
-            if (res.ok) {
-                setHasUpdatedSettings(true);
-                console.log('Settings updated successfully');
-            } else {
-                setHasFailedSettings(true);
-                setFailedSettingsMessage(data.error);
-            }
-        } catch (error) {
-            setHasFailedSettings(true);
-            setFailedSettingsMessage('An error occurred while updating settings. Please try again later.');
-            console.error('Error updating settings:', error);
+            if (!res.ok) throw new Error(data.error || 'Failed to update settings');
+
+            setHasUpdated(true);
+        } catch (err: any) {
+            setHasFailed(true);
+            setErrorMessage(err.message || 'Error updating settings');
         }
     }
 
-    function handleDarkModeChange(event: React.ChangeEvent<HTMLInputElement>) {
-        setDarkMode(event.target.checked);
-        setHasFailedSettings(false);
-        setHasUpdatedSettings(false);
+    async function updateAccount() {
+        setPasswordMismatch(false);
+        if (password && password !== confirmPassword) {
+            setPasswordMismatch(true);
+            return;
+        }
+
+        if (!token) return logout();
+        try {
+            const decoded = JSON.parse(atob(token.split('.')[1]));
+            const userId = decoded.userId;
+
+            const payload: any = { userId, username };
+            if (password) payload.password = password;
+
+            const res = await fetch(`http://localhost:3000/api/v1/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to update account');
+
+            setHasUpdated(true);
+        } catch (err: any) {
+            setHasFailed(true);
+            setErrorMessage(err.message || 'Error updating account');
+        }
     }
 
-    function handleIgnChange(value: string): void {
-        setIgn(value);
-        setHasFailedSettings(false);
-        setHasUpdatedSettings(false);
+    async function deleteAccount() {
+        if (!token) return logout();
+        try {
+            const decoded = JSON.parse(atob(token.split('.')[1]));
+            const userId = decoded.userId;
+
+            const res = await fetch(`http://localhost:3000/api/v1/users/${userId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!res.ok) throw new Error('Failed to delete account');
+            logout();
+        } catch (err: any) {
+            setHasFailed(true);
+            setErrorMessage(err.message || 'Error deleting account');
+        }
     }
 
     return (
-        <Container
-            component="main"
-            maxWidth="xs"
-            sx={{
-                borderRadius: 2,
-                boxShadow: 3,
-                padding: 3,
-                mt: 8,
-                backgroundColor: (theme) =>
-                    theme.palette.mode === 'light'
-                        ? 'rgba(255, 255, 255, 0.8)'
-                        : 'rgba(0, 0, 0, 0.8)',
-                backdropFilter: 'blur(8px)',
-            }}
-        >
-            <Box sx={{ mb: 2 }}>
-                {hasFailedSettings && (
-                    <Fade in={hasFailedSettings}>
-                        <Alert
-                            variant="outlined"
-                            severity="error"
-                            sx={{ width: '100%' }}
-                        >
-                            {failedSettingsMessage}
-                        </Alert>
-                    </Fade>
-                )}
-                {hasUpdatedSettings && (
-                    <Fade in={hasUpdatedSettings}>
-                        <Alert
-                            variant="outlined"
-                            severity="success"
-                            sx={{ width: '100%' }}
-                        >
-                            Settings updated successfully!
-                        </Alert>
-                    </Fade>
-                )}
-            </Box>
-            <Typography variant="h4" gutterBottom align="center">
-                Settings
+        <Container maxWidth="sm" sx={{ mt: 8 }}>
+            {hasFailed && <Fade in={hasFailed}><Alert severity="error">{errorMessage}</Alert></Fade>}
+            {hasUpdated && <Fade in={hasUpdated}><Alert severity="success">Changes saved successfully!</Alert></Fade>}
+
+            <Typography variant="h4" align="center" gutterBottom>
+                Manage Your Account
             </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <FormControlLabel
-                    control={
-                        <Switch
-                            checked={darkMode}
-                            onChange={handleDarkModeChange}
-                        />
-                    }
-                    label="Dark Mode"
-                />
-                <TextField
-                    label="In-Game Name (IGN)"
-                    value={ign}
-                    onChange={(e) => handleIgnChange(e.target.value)}
-                    fullWidth
-                />
-                <Button
-                    type="submit"
-                    fullWidth
-                    variant="contained"
-                    onClick={updateSettings}
-                    sx={{ mt: 2 }}
-                >
-                    Submit
-                </Button>
-            </Box>
+
+            <Tabs value={tabIndex} onChange={(_, val) => setTabIndex(val)} centered>
+                <Tab label="Settings" />
+                <Tab label="Account" />
+            </Tabs>
+
+            {/* Settings Tab */}
+            {tabIndex === 0 && (
+                <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <FormControlLabel
+                        control={<Switch checked={darkMode} onChange={e => setDarkMode(e.target.checked)} />}
+                        label="Dark Mode"
+                    />
+                    <TextField
+                        label="In-Game Name (IGN)"
+                        value={ign}
+                        onChange={e => setIgn(e.target.value)}
+                        fullWidth
+                    />
+                    <Button variant="contained" onClick={updateSettings}>Save Settings</Button>
+                </Box>
+            )}
+
+            {/* Account Tab */}
+            {tabIndex === 1 && (
+                <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <TextField
+                        label="Username"
+                        value={username}
+                        onChange={e => setUsername(e.target.value)}
+                        fullWidth
+                    />
+                    <TextField
+                        label="New Password"
+                        type="password"
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        fullWidth
+                    />
+                    <TextField
+                        label="Confirm Password"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={e => setConfirmPassword(e.target.value)}
+                        fullWidth
+                        error={passwordMismatch}
+                        helperText={passwordMismatch ? "Passwords do not match" : ""}
+                    />
+                    <Button variant="contained" onClick={updateAccount}>Update Account</Button>
+                    <Button
+                        variant="outlined"
+                        color="error"
+                        onClick={() => setDeleteDialogOpen(true)}
+                    >
+                        Delete Account
+                    </Button>
+                </Box>
+            )}
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+                <DialogTitle>Confirm Account Deletion</DialogTitle>
+                <DialogContent>
+                    <Typography>Are you sure you want to delete your account? This action is permanent.</Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+                    <Button variant="contained" color="error" onClick={deleteAccount}>
+                        Delete
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Container>
     );
 }
