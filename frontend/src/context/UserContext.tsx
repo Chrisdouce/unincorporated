@@ -3,7 +3,7 @@ import React, { createContext, JSX, useContext, useEffect, useState } from "reac
 export type UserContextType = {
   token: string | null;
   isLoading: boolean;
-  login: (token: string) => void;
+  login: (token: string, rememberMe: boolean) => void;
   logout: () => void;
 };
 
@@ -23,9 +23,9 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
     setIsLoading(false);
   }, []);
 
-  function login(token: string): void {
+  function login(token: string, rememberMe: boolean): void {
     setToken(token);
-    if (token) {
+    if (token && rememberMe) {
       localStorage.setItem('token', token);
       sessionStorage.setItem('token', token);
     }
