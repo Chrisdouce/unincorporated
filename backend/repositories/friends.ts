@@ -46,15 +46,23 @@ export async function getFriendByUserId(userId: string, friendId: string): Promi
     return friend as Friend || null;
 }
 
-export async function getAllPendingFriendsForUser(userId: string): Promise<Friend[] | null> {
+export async function getAllPendingFriendsForUser(userId: string) {
     const pendingFriends = await db
         .selectFrom('friend')
-        .selectAll()
-        .where('friendBId', '=', userId)
-        .where('status', '=', 'pending')
+        .innerJoin('user', 'user.userId', 'friend.friendAId')
+        .select([
+            'friend.friendAId',
+            'friend.friendBId',
+            'friend.status',
+            'user.username as friendAUsername',
+            'friend.createdAt',
+            'friend.updatedAt'
+        ])
+        .where('friend.friendBId', '=', userId)
+        .where('friend.status', '=', 'pending')
         .execute();
-        
-    return pendingFriends || null;
+
+    return pendingFriends.length > 0 ? pendingFriends : null;
 }
 
 export async function addFriend(senderId: string, receiverId: string): Promise<Friend> {

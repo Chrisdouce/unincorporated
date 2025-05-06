@@ -89,7 +89,7 @@ router.post('/users/:userId/friends', verifyToken, async (req, res, next) => {
         res.status(400).json({ error: 'friendId must be a string' });
         return;
     }
-    if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(friendId)) {
+    if (!isUUID(friendId)) {
         res.status(400).json({ error: 'friendId must be a valid UUID' });
         return;
     }
@@ -184,13 +184,14 @@ router.put('/users/:userId/friends/:friendId', verifyToken, async (req, res, nex
         res.status(400).json({ error: 'status must be friends, good friends, or best friends' });
         return;
     }
-    
+
     const updatedFriend = await updateFriend(req.params.userId, friend.userId, req.body.status);
     res.status(200).json(updatedFriend);
 });
 
 
 router.delete('/users/:userId/friends', verifyToken, async (req, res, next) => {
+    
     //Check if userId is a valid UUID
     if (!isUUID(req.params.userId)) {
         res.status(404).json({ error: 'Invalid UUID' });
@@ -201,7 +202,7 @@ router.delete('/users/:userId/friends', verifyToken, async (req, res, next) => {
         res.status(404).json({ error: 'User not found' });
         return;
     }
-    
+
     //Validation for friendId
     if (!req.body.friendId) {
         res.status(400).json({ error: 'friendId is required' });
@@ -211,7 +212,8 @@ router.delete('/users/:userId/friends', verifyToken, async (req, res, next) => {
         res.status(400).json({ error: 'friendId must be a string' });
         return;
     }
-    if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.body.friendId)) {
+
+    if (!isUUID(req.body.friendId)) {
         res.status(400).json({ error: 'Invalid UUID' });
         return;
     }
@@ -228,6 +230,7 @@ router.delete('/users/:userId/friends', verifyToken, async (req, res, next) => {
         res.status(404).json({ error: 'Friend not found' });
         return;
     }
+    
     const deletedFriend = await removeFriend(user.userId, friend.userId);
     res.status(200).json(deletedFriend);
 });

@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import {
   Box, AppBar, Toolbar, Typography, Tabs, Tab, Button, IconButton,
-  Menu, MenuItem, TextField, Paper
+  Menu, MenuItem, TextField, Paper,
+  Icon
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import Dialog from '@mui/material/Dialog';
@@ -15,6 +16,8 @@ import { useUser } from "./context/UserContext";
 import SignUpPage from './components/Signup-Form';
 import { Navigate } from 'react-router';
 import SettingsPage from './components/Settings';
+import PersonalPage from './components/Personal-Page';
+import FriendNotif from './components/Friend-Notif';
 
 interface CardData {
   name: string;
@@ -32,6 +35,7 @@ export default function App() {
   const [newMessage, setNewMessage] = useState('');
   const tabLabels = ["Party Finder", "Guides", "Friends"];
   const { token, isLoading, login, logout } = useUser();
+  const [exampleUsers, setExampleUsers] = useState<string[]>([]);
 
   const partySizeOptions: Record<string, { default: number; min: number; max: number }> = {
     Kuddra: { default: 4, min: 2, max: 4 },
@@ -39,6 +43,29 @@ export default function App() {
     Diana: { default: 6, min: 2, max: 10 },
     Fishing: { default: 6, min: 2, max: 10 }
   };
+
+  useEffect(() => {
+    async function fetchUsers() {
+    try {
+        if (isLoading) return;
+        if (!token) {
+            logout();
+            return;
+        }
+        const decodedToken = JSON.parse(atob(token.split('.')[1]));
+        const users = await fetch(`http://localhost:3000/api/v1/users`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        const data = await users.json();
+        const userIds = data.map((user: { userId: string }) => user.userId);
+        setExampleUsers(userIds);
+    } catch (error) {
+        console.error('Error fetching settings:', error);
+    }
+  }
+  fetchUsers();
+}, [token]);
   
   const [partySize, setPartySize] = useState(partySizeOptions['Diana'].default);
 
@@ -77,7 +104,9 @@ export default function App() {
       )
     )
   };
-
+  if (isLoading) {
+    return <div>Loading...</div>; // or a spinner
+  }
   if (!token) {
     return (
     <BrowserRouter>
@@ -106,11 +135,12 @@ export default function App() {
                 ))}
                 </Tabs>
             </Box>
+            <FriendNotif />
             <IconButton onClick={handleMenuOpen}><MoreVertIcon /></IconButton>
             <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
                 <MenuItem onClick={handleMenuClose}>Profile</MenuItem>
                 <MenuItem onClick={handleMenuClose}>Settings</MenuItem>
-                <MenuItem onClick={logout}>Logout</MenuItem>
+                <MenuItem onClick={() => { handleMenuClose(); logout(); }}>Logout</MenuItem>
             </Menu>
         </Toolbar>
       </AppBar>
@@ -219,6 +249,12 @@ export default function App() {
           <Button variant="contained" onClick={handleCreateCard}>Create</Button>
         </DialogActions>
       </Dialog>
+      <Box>
+        {exampleUsers.map((user, index) => (
+          <PersonalPage key={index} openedUserId={user} />
+        ))}
+      </Box>
+      <SettingsPage />
     </Box>
   );
 }

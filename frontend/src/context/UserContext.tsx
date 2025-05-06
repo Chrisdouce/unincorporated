@@ -27,10 +27,12 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
     setToken(token);
     if (token) {
       localStorage.setItem('token', token);
+      sessionStorage.setItem('token', token);
     }
   }
 
   function logout(): void {
+    console.log('Logging out...');
     setToken(null);
     localStorage.removeItem('token');
     sessionStorage.removeItem('token');
