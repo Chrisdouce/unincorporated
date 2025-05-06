@@ -178,6 +178,12 @@ export async function removeUserFromGroup(userId: string, groupId: string): Prom
             .where('userId', '=', userId)
             .where('groupId', '=', groupId)
             .execute();
+        
+        await trx
+            .updateTable('group')
+            .set({ size: sql`size - 1` })
+            .where('groupId', '=', groupId)
+            .execute();
     });
     return groupId;
 }
