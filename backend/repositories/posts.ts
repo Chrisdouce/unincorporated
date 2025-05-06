@@ -4,6 +4,7 @@ export type Post = {
     postId: string;
     ownerId: string;
     parentId: string | null;
+    title: string | null;
     content: string;
     createdAt: Date;
     updatedAt: Date;
@@ -73,27 +74,29 @@ export async function createPost(newPost: Omit<Post, 'postId' | 'createdAt' | 'u
             .values({ 
                 ownerId: newPost.ownerId,
                 parentId: newPost.parentId || null as any,
+                title: newPost.title || "New Title",
                 content: newPost.content,
                 createdAt: new Date(),
                 updatedAt: new Date()
             })
-            .returning(['postId', 'ownerId', 'parentId', 'content', 'createdAt'])
+            .returning(['postId', 'ownerId', 'parentId', 'title', 'content', 'createdAt'])
             .executeTakeFirstOrThrow();
         return createdPost;
     });
     return createdPost;
 }
 
-export async function updatePost(postId: string, newContent: string) {
+export async function updatePost(postId: string, newContent: string, newTitle: string): Promise<Post> {
     return await db.transaction().execute(async (trx) => {
         return await trx
             .updateTable('post')
             .set({
+                title: newTitle,
                 content: newContent,
                 updatedAt: new Date()
             })
             .where('postId', '=', postId)
-            .returning(['postId', 'ownerId', 'parentId', 'content'])
+            .returning(['postId', 'ownerId', 'parentId', 'content', 'title', 'createdAt', 'updatedAt'])
             .executeTakeFirstOrThrow();
     });
 }
@@ -110,7 +113,7 @@ export async function deletePost(postId: string): Promise<Post | null> {
         const post = await trx
             .deleteFrom('post')
             .where('postId', '=', postId)
-            .returning(['postId', 'ownerId', 'parentId', 'content', 'createdAt', 'updatedAt'])
+            .returning(['postId', 'ownerId', 'parentId', 'title', 'content', 'createdAt', 'updatedAt'])
             .executeTakeFirst();
 
         return post || null;

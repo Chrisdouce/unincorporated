@@ -18,6 +18,7 @@ import { Navigate } from 'react-router';
 import SettingsPage from './components/Settings';
 import PersonalPage from './components/Personal-Page';
 import FriendNotif from './components/Friend-Notif';
+import GuidesList from './components/Guides-List';
 
 interface CardData {
   name: string;
@@ -159,7 +160,7 @@ export default function App() {
           </Box>
           <Button variant="outlined">Filter</Button>
         </Box>
-
+        {tabLabels[tabValue] === "Guides" && <GuidesList />}
         {cards.map((card, index) => (
           <Box
             key={index}
@@ -254,7 +255,6 @@ export default function App() {
           <PersonalPage key={index} openedUserId={user} />
         ))}
       </Box>
-      <SettingsPage />
     </Box>
   );
 }

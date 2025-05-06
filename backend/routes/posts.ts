@@ -36,34 +36,33 @@ function isUUID(uuid: string) {
     return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(uuid);
 }
 
-// If we need it later, we can uncomment this
-// //Gets all posts
-// router.get('/posts', verifyToken, async (req, res, next) => {
-//     try {
-//         const posts = await getAllPostsByUserId(req.params.userId);
-//         res.status(200).json(posts);
-//     } catch (err) {
-//         next(err);
-//     }
-// });
-// //Gets a post by postId
-// router.get('/posts/:postId', verifyToken, async (req, res, next) => {
-//     try {
-//         //Check if postId is a valid UUID
-//         if (!isUUID(req.params.postId)) {
-//             res.status(404).json({ error: 'Invalid UUID' });
-//             return;
-//         } 
-//         const post = await getAllPostsByUserId(req.params.postId);
-//         if (!post) {
-//             res.status(404).json({ error: 'Post not found' });
-//             return;
-//         }
-//         res.status(200).json(post);
-//     } catch (err) {
-//         next(err);
-//     }
-// });
+//Gets all posts
+router.get('/posts', verifyToken, async (req, res, next) => {
+    try {
+        const posts = await getAllPostsByUserId(req.params.userId);
+        res.status(200).json(posts);
+    } catch (err) {
+        next(err);
+    }
+});
+//Gets a post by postId
+router.get('/posts/:postId', verifyToken, async (req, res, next) => {
+    try {
+        //Check if postId is a valid UUID
+        if (!isUUID(req.params.postId)) {
+            res.status(404).json({ error: 'Invalid UUID' });
+            return;
+        } 
+        const post = await getAllPostsByUserId(req.params.postId);
+        if (!post) {
+            res.status(404).json({ error: 'Post not found' });
+            return;
+        }
+        res.status(200).json(post);
+    } catch (err) {
+        next(err);
+    }
+});
 
 //Gets all posts from user
 router.get('/users/:userId/posts', verifyToken, async (req, res, next) => {
@@ -129,7 +128,24 @@ router.post('/users/:userId/posts', verifyToken, async (req, res, next) => {
             res.status(404).json({ error: 'User not found' });
             return;
         }
-        
+
+        if(!req.body.title){
+            res.status(400).json({ error: 'Title is required' });
+            return;
+        }
+        if(req.body.title.length <= 0){
+            res.status(400).json({ error: 'Title is required' });
+            return;
+        }
+        if (typeof req.body.title !== 'string'){
+            res.status(400).json({ error: 'Title must be a string' });
+            return;
+        }
+        if (req.body.title.length > 255){
+            res.status(400).json({ error: 'Title must be less than 255 characters' });
+            return;
+        }
+
         if(!req.body.content){
             res.status(400).json({ error: 'Content is required' });
             return;
@@ -143,7 +159,7 @@ router.post('/users/:userId/posts', verifyToken, async (req, res, next) => {
             return;
         }
         
-        const newPost = await createPost({'ownerId': user.userId, 'parentId': null, 'content': req.body.content});
+        const newPost = await createPost({'ownerId': user.userId, 'parentId': null, 'title': req.body.title, 'content': req.body.content});
         if (!newPost) {
             res.status(400).json({ error: 'Failed to create post' });
             return;
@@ -193,7 +209,7 @@ router.post('/users/:userId/posts/:postId', verifyToken, async (req, res, next) 
             return;
         }
         
-        const newPost = await createPost({'ownerId': user.userId, 'parentId': req.params.postId, 'content': req.body.content});
+        const newPost = await createPost({'ownerId': user.userId, 'parentId': req.params.postId, 'title': null, 'content': req.body.content});
         if (!newPost) {
             res.status(400).json({ error: 'Failed to create post' });
             return;
@@ -243,7 +259,7 @@ router.put('/users/:userId/posts/:postId', verifyToken, async (req, res, next) =
             return;
         }
         
-        const updatedPost = await updatePost(req.params.postId, req.body.content);
+        const updatedPost = await updatePost(req.params.postId, req.body.content, req.body.title);
         res.status(200).json(updatedPost);
     } catch (err) {
         next(err);

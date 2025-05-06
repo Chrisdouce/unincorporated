@@ -61,8 +61,7 @@ export async function getAllPendingFriendsForUser(userId: string) {
         .where('friend.friendBId', '=', userId)
         .where('friend.status', '=', 'pending')
         .execute();
-
-    return pendingFriends.length > 0 ? pendingFriends : null;
+    return pendingFriends;
 }
 
 export async function addFriend(senderId: string, receiverId: string): Promise<Friend> {
