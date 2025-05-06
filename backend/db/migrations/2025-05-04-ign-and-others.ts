@@ -5,6 +5,7 @@ export async function up(db: Kysely<any>): Promise<void> {
         .addColumn("userId", "uuid", col => col.notNull().references("user.userId").onDelete("cascade"))
         .addColumn("ign", "varchar(255)", col => col.notNull().defaultTo(""))
         .addColumn("darkMode", "boolean", col => col.notNull().defaultTo(false))
+        .addColumn("minecraftUUID", "uuid", col => col.defaultTo(null))
         .execute();
     
     await db.schema

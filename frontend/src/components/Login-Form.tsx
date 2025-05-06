@@ -17,7 +17,7 @@ import GoogleIcon from '@mui/icons-material/Google';
 import { JSX, useState } from 'react';
 
 type Props = {
-    onLogin: (token: string) => void;
+    onLogin: (token: string, rememberMe: boolean) => void;
 }
 
 export default function LoginPage({onLogin}: Props): JSX.Element {
@@ -62,7 +62,7 @@ export default function LoginPage({onLogin}: Props): JSX.Element {
             return;
         }
         const data = await res.json();
-        onLogin(data.token);
+        onLogin(data.token, rememberMe);
     }
     
     return (

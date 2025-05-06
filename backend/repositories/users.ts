@@ -9,16 +9,12 @@ export type User = {
     groupId: string | null;
 };
 
-export type Friend = {
-    friendAId: string;
-    friendBId: string;
-}
-
 export type Settings = {
     userId: string;
     darkMode: boolean;
     ign: string;
-}
+    minecraftUUID: string | null;
+};
 
 export async function getAllUsers(): Promise<Omit<User, 'hashedPassword'>[] | null> {
     const users = await db
@@ -67,7 +63,8 @@ export async function createUser(newUser: Omit<User, 'userId' | 'groupId' | 'cre
             .values({
                 userId: createdUser.userId,
                 darkMode: false,
-                ign: ''
+                ign: '',
+                minecraftUUID: null
             })
             .executeTakeFirstOrThrow();
         
@@ -115,82 +112,6 @@ export async function deleteUser(userId: string) {
     return deletedUser || null;
 }
 
-/*
-    Friends Table
-*/
-export async function getAllFriendsByUserId(userId: string): Promise<Omit<User, 'hashedPassword'>[] | null> {
-    let friends = await db
-        .selectFrom('friend')
-        .innerJoin('user', 'friend.friendBId', 'user.userId')
-        .select(['user.userId', 'user.username', 'user.groupId', 'user.createdAt', 'user.updatedAt'])
-        .where('friend.friendAId', '=', userId)
-        .execute();
-    friends.push(
-            ...(await db
-            .selectFrom('friend')
-            .innerJoin('user', 'friend.friendAId', 'user.userId')
-            .select(['user.userId', 'user.username', 'user.groupId', 'user.createdAt', 'user.updatedAt'])
-            .where('friend.friendBId', '=', userId)
-            .execute())
-        );
-    return friends;
-}
-
-export async function getFriendByUserId(userId: string, friendId: string): Promise<Omit<User, 'hashedPassword'> | null> {
-    let friend = await db
-        .selectFrom('friend')
-        .innerJoin('user', 'friend.friendBId', 'user.userId')
-        .select(['user.userId', 'user.username', 'user.groupId', 'user.createdAt', 'user.updatedAt'])
-        .where('friend.friendAId', '=', userId)
-        .where('friend.friendBId', '=', friendId)
-        .executeTakeFirst();
-    if (!friend) {
-        friend = await db
-            .selectFrom('friend')
-            .innerJoin('user', 'friend.friendAId', 'user.userId')
-            .select(['user.userId', 'user.username', 'user.groupId', 'user.createdAt', 'user.updatedAt'])
-            .where('friend.friendBId', '=', friendId)
-            .where('friend.friendAId', '=', userId)
-            .executeTakeFirst();
-    }
-    return friend || null;
-}
-
-export async function addFriend(friendAId: string, friendBId: string): Promise<Friend> {
-    const friend = await db.transaction().execute(async (trx) => {
-        return await trx
-            .insertInto('friend')
-            .values({
-                friendAId: friendAId,
-                friendBId: friendBId,
-                createdAt: new Date()
-            })
-            .returning(['friendAId', 'friendBId'])
-            .executeTakeFirstOrThrow();
-    });
-    return friend;
-}
-
-export async function removeFriend(userId: string, friendId: string): Promise<Friend> {
-    const friend = await db.transaction().execute(async (trx) => {
-        let deletedFriend = await trx
-            .deleteFrom('friend')
-            .where('friendAId', '=', userId)
-            .where('friendBId', '=', friendId)
-            .returning(['friendAId', 'friendBId'])
-            .executeTakeFirstOrThrow();
-        if (!deletedFriend) {
-            deletedFriend = await trx
-                .deleteFrom('friend')
-                .where('friendAId', '=', friendId)
-                .where('friendBId', '=', userId)
-                .returning(['friendAId', 'friendBId'])
-                .executeTakeFirstOrThrow();
-        }
-        return deletedFriend;
-    });
-    return friend || null;
-}
 
 /*
     Settings Table
@@ -211,9 +132,10 @@ export async function updateUserSettings(userSettings: Settings): Promise<Settin
             .set({
                 darkMode: userSettings.darkMode,
                 ign: userSettings.ign,
+                minecraftUUID: userSettings.minecraftUUID
             })
             .where('userId', '=', userSettings.userId)
-            .returning(['userId', 'ign', 'darkMode'])
+            .returning(['userId', 'ign', 'darkMode', 'minecraftUUID'])
             .executeTakeFirstOrThrow();
     });
     return settings;

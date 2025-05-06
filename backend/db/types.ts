@@ -22,12 +22,15 @@ export type SettingsTable = {
   userId: ColumnType<string, string, undefined>;
   darkMode: boolean;
   ign: string;
+  minecraftUUID: string | null;
 };
 
 export type FriendTable = {
   friendAId: ColumnType<string, string, undefined>;
   friendBId: ColumnType<string, string, undefined>;
+  status: string;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 export type GroupTable = {
