@@ -16,11 +16,24 @@ export type Reaction = {
     type: string;
 };
 
-export async function getAllPosts(): Promise<Post[]> {
-    return await db
+export async function getAllPosts(): Promise<(Post & { username: string })[]> {
+    const posts = await db
         .selectFrom('post')
         .selectAll()
         .execute();
+
+    const users = await db
+        .selectFrom('user')
+        .selectAll()
+        .execute();
+
+    return posts.map(post => {
+        const user = users.find(user => user.userId === post.ownerId);
+        return {
+            ...post,
+            username: user ? user.username : 'Unknown',
+        };
+    });
 }
 
 export async function getAllPostsByUserId(userId: string): Promise<Post[]> {

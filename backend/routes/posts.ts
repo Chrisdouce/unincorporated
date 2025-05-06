@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
-import { createPost, createReactionOnPost, deletePost, deleteReactionOnPost, getAllPostsByUserId, getPostByPostId, getUserReactionsOnPost, updatePost, updateReactionOnPost } from '../repositories/posts';
+import { createPost, createReactionOnPost, deletePost, deleteReactionOnPost, getAllPosts, getAllPostsByUserId, getPostByPostId, getUserReactionsOnPost, updatePost, updateReactionOnPost } from '../repositories/posts';
 import { getUserById } from '../repositories/users';
 
 const router = express.Router();
@@ -39,7 +39,7 @@ function isUUID(uuid: string) {
 //Gets all posts
 router.get('/posts', verifyToken, async (req, res, next) => {
     try {
-        const posts = await getAllPostsByUserId(req.params.userId);
+        const posts = await getAllPosts();
         res.status(200).json(posts);
     } catch (err) {
         next(err);

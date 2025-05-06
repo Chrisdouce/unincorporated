@@ -18,7 +18,7 @@ import { Navigate } from 'react-router';
 import SettingsPage from './components/Settings';
 import PersonalPage from './components/Personal-Page';
 import FriendNotif from './components/Friend-Notif';
-import GuidesList from './components/Guides-List';
+import GuidesList from './components/Guide-List';
 
 interface CardData {
   name: string;
