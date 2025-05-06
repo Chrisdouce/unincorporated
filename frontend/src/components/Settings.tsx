@@ -106,7 +106,7 @@ export default function SettingsPage() {
 
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Failed to update account');
-
+            
             setHasUpdated(true);
         } catch (err: any) {
             setHasFailed(true);
