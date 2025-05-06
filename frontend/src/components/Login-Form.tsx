@@ -20,13 +20,6 @@ type Props = {
     onLogin: (token: string, rememberMe: boolean) => void;
 }
 
-type JwtPayload = {
-    userId: string;
-    username: string;
-    createdAt: string;
-    updatedAt: string;
-  };
-
 export default function LoginPage({onLogin}: Props): JSX.Element {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
