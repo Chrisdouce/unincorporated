@@ -4,6 +4,7 @@ import { IconButton, Badge, Menu, Box, InputBase, Divider, CircularProgress, Typ
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import CheckIcon from "@mui/icons-material/Check";
 import ClearIcon from "@mui/icons-material/Clear";
+import { baseUrl } from "../services/BaseUrl";
 
 export default function FriendNotif() {
     const { token, logout } = useUser();
@@ -32,7 +33,7 @@ export default function FriendNotif() {
             const decodedToken = JSON.parse(atob(token.split('.')[1]));
             const userId = decodedToken.userId;
             setCurrentUserId(userId);
-            const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/requests`, {
+            const res = await fetch(`${baseUrl}/api/v1/users/${userId}/requests`, {
                 method: 'GET',
                 headers: { 'Authorization': `Bearer ${token}` },
             });
@@ -84,7 +85,7 @@ export default function FriendNotif() {
 
     async function handleAccept (userId: string) {
         try {
-            const res = await fetch(`http://localhost:3000/api/v1/users/${currentUserId}/friends/${userId}`, {
+            const res = await fetch(`${baseUrl}/api/v1/users/${currentUserId}/friends/${userId}`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -103,7 +104,7 @@ export default function FriendNotif() {
     
     async function handleDeny (userId: string) {
         try {
-            const res = await fetch(`http://localhost:3000/api/v1/users/${currentUserId}/friends`, {
+            const res = await fetch(`${baseUrl}/api/v1/users/${currentUserId}/friends`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,

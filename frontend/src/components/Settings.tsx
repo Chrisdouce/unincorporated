@@ -6,6 +6,7 @@ import {
 } from '@mui/material';
 import { useUser } from "../context/UserContext";
 import { Setting } from '../types/Settings';
+import { baseUrl } from '../services/BaseUrl';
 
 export default function SettingsPage() {
     const { token, logout, isLoading } = useUser();
@@ -31,7 +32,7 @@ export default function SettingsPage() {
                 const decoded = JSON.parse(atob(token.split('.')[1]));
                 const userId = decoded.userId;
 
-                const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/settings`, {
+                const res = await fetch(`${baseUrl}/api/v1/users/${userId}/settings`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
@@ -61,7 +62,7 @@ export default function SettingsPage() {
                 userId, darkMode, ign
             };
 
-            const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/settings`, {
+            const res = await fetch(`${baseUrl}/api/v1/users/${userId}/settings`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -95,7 +96,7 @@ export default function SettingsPage() {
             const payload: any = { userId, username };
             if (password) payload.password = password;
 
-            const res = await fetch(`http://localhost:3000/api/v1/users/${userId}`, {
+            const res = await fetch(`${baseUrl}/api/v1/users/${userId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -120,7 +121,7 @@ export default function SettingsPage() {
             const decoded = JSON.parse(atob(token.split('.')[1]));
             const userId = decoded.userId;
 
-            const res = await fetch(`http://localhost:3000/api/v1/users/${userId}`, {
+            const res = await fetch(`${baseUrl}/api/v1/users/${userId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`

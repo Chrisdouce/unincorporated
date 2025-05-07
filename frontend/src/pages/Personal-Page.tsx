@@ -4,6 +4,7 @@ import {
 } from "@mui/material";
 import { useUser } from "../context/UserContext";
 import SkyblockProfile from '../components/SkyblockProfile';
+import { baseUrl } from "../services/BaseUrl";
 
 type UserStats = {
   skyblockLevel: number;
@@ -38,10 +39,10 @@ export default function PersonalPage({ openedUserId }: Props): JSX.Element {
     const fetchData = async () => {
       try {
         const [userRes, settingsRes] = await Promise.all([
-          fetch(`http://localhost:3000/api/v1/users/${openedUserId}`, {
+          fetch(`${baseUrl}/api/v1/users/${openedUserId}`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          fetch(`http://localhost:3000/api/v1/users/${openedUserId}/settings`, {
+          fetch(`${baseUrl}/api/v1/users/${openedUserId}/settings`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
@@ -72,7 +73,7 @@ export default function PersonalPage({ openedUserId }: Props): JSX.Element {
           return;
         }
 
-        const friendRes = await fetch(`http://localhost:3000/api/v1/users/${thisUserId}/friends`, {
+        const friendRes = await fetch(`${baseUrl}/api/v1/users/${thisUserId}/friends`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` },
         });
@@ -105,7 +106,7 @@ export default function PersonalPage({ openedUserId }: Props): JSX.Element {
         return;
       }
 
-      const res = await fetch(`http://localhost:3000/api/v1/users/${loggedInUserId}/friends`, {
+      const res = await fetch(`${baseUrl}/api/v1/users/${loggedInUserId}/friends`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -113,10 +114,7 @@ export default function PersonalPage({ openedUserId }: Props): JSX.Element {
         },
         body: JSON.stringify({ "friendId": openedUserId }),
       });
-
-      const data = await res.json();
       if (res.status === 201) {
-        console.log('Friend request sent successfully!');
         setCanSendFriendRequest(false);
         setToolTipMessage("Friend request pending.");
       } else {
@@ -136,7 +134,7 @@ export default function PersonalPage({ openedUserId }: Props): JSX.Element {
         return;
       }
 
-      const res = await fetch(`http://localhost:3000/api/v1/users/${loggedInUserId}/friends`, {
+      const res = await fetch(`${baseUrl}/api/v1/users/${loggedInUserId}/friends`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -145,10 +143,7 @@ export default function PersonalPage({ openedUserId }: Props): JSX.Element {
         body: JSON.stringify({ "friendId": openedUserId }),
       });
 
-      const data = await res.json();
-      console.log(data.error);
       if (res.status === 200) {
-        console.log('Friend removed successfully!');
         setIsFriend(false);
         setCanSendFriendRequest(true);
       } else {
@@ -226,7 +221,7 @@ export default function PersonalPage({ openedUserId }: Props): JSX.Element {
           </Typography>
           <Grid container spacing={2}>
             {Object.entries(userData.stats).map(([key, value]) => (
-              <Grid item key={key}>
+              <Grid key={key}>
                 <Card sx={{ borderRadius: 3, minWidth: 180 }}>
                   <CardContent>
                     <Typography color="text.secondary" gutterBottom>

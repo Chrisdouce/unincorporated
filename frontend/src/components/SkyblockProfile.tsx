@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { baseUrl } from '../services/BaseUrl';
 
 interface SkyblockProfileData {
   cute_name: string;
@@ -16,7 +17,7 @@ const SkyblockProfile = ({ uuid }: { uuid: string }) => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/api/v1/skyblock/${uuid}`);
+        const res = await fetch(`${baseUrl}/api/v1/skyblock/${uuid}`);
         const data = await res.json();
 
         if (!res.ok) throw new Error(data.error || 'Unknown error');

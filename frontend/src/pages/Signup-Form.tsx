@@ -13,6 +13,7 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useNavigate } from 'react-router';
+import { baseUrl } from '../services/BaseUrl';
 
 export default function SignUpPage() {
 
@@ -53,7 +54,7 @@ export default function SignUpPage() {
     }
     let res = null;
     try {
-      res = await fetch('http://localhost:3000/api/v1/users', {
+      res = await fetch(`${baseUrl}/api/v1/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -64,7 +65,6 @@ export default function SignUpPage() {
       return;
     }
     
-    console.log(res.status);
     const data = await res.json();
     if (data.error) {
       setFailedSignupMessage(data.error);
