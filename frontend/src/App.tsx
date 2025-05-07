@@ -18,6 +18,7 @@ import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import SignupPage from "./pages/Signup-Form";
 import { useUser } from "./context/UserContext";
 import SignupForm from "./pages/Signup-Form";
+import { baseUrl } from "./services/BaseUrl";
 
 function App(): JSX.Element {
   const { token, isLoading, login, logout } = useUser();
@@ -39,7 +40,7 @@ function App(): JSX.Element {
           const decoded = JSON.parse(atob(token.split('.')[1]));
           const userId = decoded.userId;
 
-          const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/settings`, {
+          const res = await fetch(`${baseUrl}/api/v1/users/${userId}/settings`, {
               headers: { Authorization: `Bearer ${token}` },
           });
           if(res.status === 401) {
