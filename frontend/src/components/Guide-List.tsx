@@ -15,9 +15,10 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEffect, useState } from "react";
 import { useUser } from "../context/UserContext";
 import ReactMarkdown from "react-markdown";
+import { baseUrl } from "../services/BaseUrl";
 
 type ReactionType = 'like' | 'dislike' ;
 
@@ -49,9 +50,9 @@ export default function Guide() {
       const data = await res.json();
       // Fetch reactions for each post and append them
       const postsWithReactions = await Promise.all(
-        data.map(async (post) => {
+        data.map(async (post: { postId: any; }) => {
           try {
-            const reactionRes = await fetch(`http://localhost:3000/api/v1/posts/${post.postId}/reactions`, {
+            const reactionRes = await fetch(`${baseUrl}/api/v1/posts/${post.postId}/reactions`, {
               headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`,
@@ -98,7 +99,7 @@ export default function Guide() {
 
       const method = isEditing ? 'PUT' : 'POST';
 
-      const res = await fetch(`http://localhost:3000${route}`, {
+      const res = await fetch(`${baseUrl}${route}`, {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -143,7 +144,7 @@ export default function Guide() {
 
     try {
       const userId = token ? JSON.parse(atob(token.split('.')[1])).userId : null;
-      const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/posts/${postId}`, {
+      const res = await fetch(`${baseUrl}/api/v1/users/${userId}/posts/${postId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -253,7 +254,7 @@ export default function Guide() {
 
       {post.reactions && post.reactions.length > 0 && (
         <Stack direction="row" spacing={1} mt={1}>
-          {post.reactions.map((reaction) => (
+          {post.reactions.map((reaction: { type: Key | null | undefined; count: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; }) => (
             <Typography key={reaction.type} variant="caption" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
               {reaction.type === "like" ? "👍" : "👎"} {reaction.count}
             </Typography>

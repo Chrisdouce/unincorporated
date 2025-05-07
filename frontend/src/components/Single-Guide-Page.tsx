@@ -19,6 +19,7 @@ import ThumbDownAltIcon from '@mui/icons-material/ThumbDownAlt';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import TagFacesIcon from '@mui/icons-material/TagFaces';
 import { Link } from 'react-router-dom';
+import { baseUrl } from '../services/BaseUrl';
 
 const reactionsMap = {
   like: { icon: <ThumbUpAltIcon />, label: 'Like' },
@@ -82,7 +83,7 @@ export default function Guide(): JSX.Element {
 
       setUserReaction(null);
 
-      const res = await fetch(`http://localhost:3000/api/v1/posts/${postId}`, {
+      const res = await fetch(`${baseUrl}/api/v1/posts/${postId}`, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
@@ -97,7 +98,7 @@ export default function Guide(): JSX.Element {
         setError('Post not found');
         return;
       }
-      const userRes = await fetch(`http://localhost:3000/api/v1/users/${data.ownerId}`, {
+      const userRes = await fetch(`${baseUrl}/api/v1/users/${data.ownerId}`, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
@@ -113,7 +114,7 @@ export default function Guide(): JSX.Element {
         return;
       }
 
-      const ign = await fetch(`http://localhost:3000/api/v1/users/${data.ownerId}/settings`, {
+      const ign = await fetch(`${baseUrl}/api/v1/users/${data.ownerId}/settings`, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,

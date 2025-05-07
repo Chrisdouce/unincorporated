@@ -16,17 +16,15 @@ import {
     ListItem,
     ListItemText,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
+import { baseUrl } from "../services/BaseUrl";
 
 export default function FriendsPage(): JSX.Element {
     const { token, logout } = useUser();
     const [friends, setFriends] = useState<{ friendAId: string, username: string }[]>([]);
-    const [allUsers, setAllUsers] = useState<{ id: string; name: string, username: string }[]>([]);
+    const [allUsers, setAllUsers] = useState<{ userId: string; name: string, username: string }[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
-    const [searchFriend, setSearchFriend] = useState("");
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const navigate = useNavigate();
 
     useEffect(() => {
         if (!token) {
@@ -37,7 +35,7 @@ export default function FriendsPage(): JSX.Element {
         const fetchUserData = async () => {
             try {
                 const userId = JSON.parse(atob(token.split('.')[1])).userId;
-                const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/friends`, {
+                const res = await fetch(`${baseUrl}/api/v1/users/${userId}/friends`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
@@ -68,7 +66,7 @@ export default function FriendsPage(): JSX.Element {
 
     const fetchAllUsers = async () => {
         try {
-            const res = await fetch(`http://localhost:3000/api/v1/users`, {
+            const res = await fetch(`${baseUrl}/api/v1/users`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -140,7 +138,7 @@ export default function FriendsPage(): JSX.Element {
                                 user.username.toLowerCase().includes(searchQuery.toLowerCase()) // Case insensitive filter
                             )
                             .map((user) => (
-                                <ListItem key={user.id} divider>
+                                <ListItem key={user.userId} divider>
                                     <ListItemText
                                         primary={
                                             <Typography variant="subtitle1" fontWeight="medium">

@@ -32,7 +32,6 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
   }
 
   function logout(): void {
-    console.log('Logging out...');
     setToken(null);
     localStorage.removeItem('token');
     sessionStorage.removeItem('token');

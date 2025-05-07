@@ -1,8 +1,12 @@
-import React, { JSX, use, useEffect, useState } from 'react';
+import React, { JSX, useEffect, useState } from 'react';
 import {
-  Box, AppBar, Toolbar, Typography, Tabs, Tab, Button, IconButton,
-  Menu, MenuItem, TextField, Paper,
-  Tooltip, Icon,
+  Box, 
+  Typography, 
+  Button,
+  MenuItem, 
+  TextField, 
+  Paper,
+  Tooltip,
   Divider
 } from '@mui/material';
 import Dialog from '@mui/material/Dialog';
@@ -12,6 +16,7 @@ import DialogActions from '@mui/material/DialogActions';
 import Select from '@mui/material/Select';
 import { useUser } from "../context/UserContext";
 import { useNavigate } from 'react-router-dom';
+import { baseUrl } from '../services/BaseUrl';
 
 interface CardData {
   members: any;
@@ -36,8 +41,7 @@ function PartyFinderPage(): JSX.Element {
   const [userGroup, setUserGroup] = useState<{ groupId: string } | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editGroup, setEditGroup] = useState<CardData | null>(null);
-  const { token, isLoading, login, logout } = useUser();
-  const [exampleUsers, setExampleUsers] = useState<string[]>([]);
+  const { token, isLoading, logout } = useUser();
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
@@ -54,7 +58,6 @@ function PartyFinderPage(): JSX.Element {
   const handleCopy = async (groupId: string) => {
     try {
       const usersInGroup = await fetchAndMergeUsers(groupId);
-      console.log(usersInGroup);
       const usernames = usersInGroup.map((user: { ign: string }) => user.ign);
       const command = `/p invite ${usernames.join(' ')}`;
       await navigator.clipboard.writeText(command);
@@ -89,7 +92,7 @@ function PartyFinderPage(): JSX.Element {
 
     const fetchUserGroup = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/api/v1/users/${currentUser}/group`, {
+        const res = await fetch(`${baseUrl}/api/v1/users/${currentUser}/group`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
@@ -124,7 +127,7 @@ function PartyFinderPage(): JSX.Element {
       },
     });
   
-    const settingsRes = await fetch(`http://localhost:3000/api/v1/settings`, {
+    const settingsRes = await fetch(`${baseUrl}/api/v1/settings`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -173,7 +176,7 @@ function PartyFinderPage(): JSX.Element {
         },
       });
 
-      const settingsRes = await fetch(`http://localhost:3000/api/v1/settings`, {
+      const settingsRes = await fetch(`${baseUrl}/api/v1/settings`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -216,7 +219,7 @@ function PartyFinderPage(): JSX.Element {
       members: [],
     };
 
-    const res = await fetch(`http://localhost:3000/api/v1/users/${currentUser}/group`, {
+    const res = await fetch(`${baseUrl}/api/v1/users/${currentUser}/group`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -232,9 +235,9 @@ function PartyFinderPage(): JSX.Element {
     await fetchUserGroup();
   };
 
-  const handleJoin = async (index: number, groupId: string) => {
+  const handleJoin = async (_index: number, groupId: string) => {
     try {
-      const res = await fetch(`http://localhost:3000/api/v1/users/${currentUser}/group/${groupId}`, {
+      const res = await fetch(`${baseUrl}/api/v1/users/${currentUser}/group/${groupId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -260,7 +263,7 @@ function PartyFinderPage(): JSX.Element {
 
   const fetchUserGroup = async () => {
     try {
-      const res = await fetch(`http://localhost:3000/api/v1/users/${currentUser}/group`, {
+      const res = await fetch(`${baseUrl}/api/v1/users/${currentUser}/group`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -285,7 +288,7 @@ function PartyFinderPage(): JSX.Element {
     if (!groupToLeave) return;
   
     try {
-      const res = await fetch(`http://localhost:3000/api/v1/users/${currentUser}/group/${groupToLeave}`, {
+      const res = await fetch(`${baseUrl}/api/v1/users/${currentUser}/group/${groupToLeave}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -316,7 +319,7 @@ function PartyFinderPage(): JSX.Element {
     if (!groupToDelete) return;
   
     try {
-      const res = await fetch(`http://localhost:3000/api/v1/users/${currentUser}/group`, {
+      const res = await fetch(`${baseUrl}/api/v1/users/${currentUser}/group`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -351,7 +354,7 @@ function PartyFinderPage(): JSX.Element {
     }
   
     try {
-      const res = await fetch(`http://localhost:3000/api/v1/users/${currentUser}/group`, {
+      const res = await fetch(`${baseUrl}/api/v1/users/${currentUser}/group`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -446,12 +449,12 @@ function PartyFinderPage(): JSX.Element {
           </Box>
           <Box sx={{ order: 3, gridColumn: 'span 3', display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
             <Box sx={{ display: 'flex', gap: 1 }}>
-              {card.members.map((member, i) => (
+              {card.members.map((member: { username: string | number | bigint | boolean | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | Promise<string | number | bigint | boolean | React.ReactPortal | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined> | null | undefined; userId: any; minecraftUUID: any; }, i: React.Key | null | undefined) => (
                 <Tooltip key={i} title={member.username} onClick={() => navigate(`/users/${member.userId}`)}>
                     <Box
                       component="img"
                       src={`https://crafatar.com/avatars/${member.minecraftUUID}?size=35&default=MHF_Steve&overlay`}
-                      alt={member.username}
+                      alt={String(member.username)}
                       sx={{
                         width: 35,
                         height: 35,
