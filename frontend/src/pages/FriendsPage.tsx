@@ -2,6 +2,7 @@ import { JSX, useState } from "react";
 import PersonalPage from "../pages/Personal-Page";
 import { useUser } from "../context/UserContext";
 import { useEffect } from "react";
+import { Paper, Typography, Box, Button, TextField, Divider } from "@mui/material";
 
 export default function FriendsPage(): JSX.Element {
     const { token, logout } = useUser();
@@ -50,14 +51,40 @@ export default function FriendsPage(): JSX.Element {
     
 
     return (
-        friends.length > 0 ? (
-            <div>
+        <>
+        <Paper sx={{ margin: 2, padding: 5 }}>
+            <Typography variant="h5" align="center">
+                {"Friends"}
+            </Typography>
+        </Paper>
+        <Box sx={{ padding: 2, px: 5, pt: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, pb: 2 }}>
+                <Button
+                variant="outlined"
+                onClick={() => {
+                }}
+                >
+                    Add Friend
+                </Button>
+
+                <Box sx={{ flexGrow: 1 }}>
+                    <TextField fullWidth label="Search for Friends" variant="outlined" />
+                </Box>
+                <Button variant="outlined">Filter</Button>
+            </Box>
+        </Box>
+        <Divider sx={{ marginY: 2 }} />
+        {friends.length > 0 ? (
+            <Box>
                 {friends.map((friend) => (
                     <PersonalPage key={friend.friendAId} openedUserId={friend.friendAId} />
                 ))}
-            </div>
+            </Box>
         ) : (
-            <p>No friends found.</p>
-        )
+            <Typography align="center" sx={{ paddingTop: 2 }}>
+                No friends found :(
+            </Typography>
+        )}
+        </>
     );
 }
