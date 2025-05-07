@@ -45,7 +45,7 @@ interface Post {
 }
 
 export default function Guide(): JSX.Element {
-  const { title } = useParams<{ title: string }>();
+  const { postId } = useParams<{ postId: string }>();
   const { token, logout } = useUser();
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,24 +80,25 @@ export default function Guide(): JSX.Element {
 
       setUserReaction(null); // Reset early
 
-      const res = await fetch(`http://localhost:3000/api/v1/posts`, {
+      const res = await fetch(`http://localhost:3000/api/v1/posts/${postId}`, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
       });
-
+      if (!res.ok) {
+        setError('Unable to find post');
+        return;
+      }
       const data = await res.json();
-      const matched = data.find((g: { title: string }) => slugify(g.title) === title?.toLowerCase());
-
-      if (!matched) {
+      if (!data) {
         setError('Post not found');
         return;
       }
 
       const userId = JSON.parse(atob(token.split('.')[1])).userId;
       const reactionsRes = await fetch(
-        `http://localhost:3000/api/v1/users/${userId}/posts/${matched.postId}/reactions`,
+        `http://localhost:3000/api/v1/users/${userId}/posts/${postId}/reactions`,
         {
           headers: {
             'Content-Type': 'application/json',
@@ -107,23 +108,23 @@ export default function Guide(): JSX.Element {
       );
 
       const reactionData = await reactionsRes.json();
-      const postReaction = reactionData.find((r: { postId: string }) => r.postId === matched.postId);
+      const postReaction = reactionData.find((r: { postId: string }) => r.postId === postId);
 
       if (postReaction) {
         setUserReaction(postReaction.type);
       }
 
       setPost({
-        id: matched.postId,
-        title: matched.title,
-        content: matched.content,
+        id: data.postId,
+        title: data.title,
+        content: data.content,
         author: {
-          id: matched.ownerId,
-          username: matched.username,
+          id: data.ownerId,
+          username: data.username,
         },
-        likes: matched.likes,
-        dislikes: matched.dislikes,
-        reactions: matched.reactions || [],
+        likes: data.likes,
+        dislikes: data.dislikes,
+        reactions: data.reactions || [],
       });
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
@@ -134,7 +135,7 @@ export default function Guide(): JSX.Element {
 
   useEffect(() => {
     fetchPost();
-  }, [title, token]);
+  }, [postId, token]);
 
   const reactToPost = async (type: ReactionType) => {
     if (!post || !token) return;

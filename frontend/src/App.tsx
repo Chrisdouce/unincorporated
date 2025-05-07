@@ -232,7 +232,7 @@ export default function App() {
           <Route path="/signup" element={<SignUpPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/guides" element={<GuidesList />} />
-          <Route path="/guides/:title" element={<Guide />} />
+          <Route path="/guides/:postId" element={<Guide />} />
         </Routes>
       </Box>
     </Box>

@@ -44,11 +44,6 @@ interface Guide {
 
 type ReactionType = 'like' | 'dislike' ;
 
-
-function slugify (title: string) {
-  return title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
-}
-
 const ITEMS_PER_PAGE = 5;
 
 export default function GuidesList() {
@@ -120,7 +115,6 @@ export default function GuidesList() {
 
         const avatars: Record<string, string> = {};
         await Promise.all(uniqueOwnerIds.map(async (userId) => {
-          console.log(userId);
           const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/settings`, {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${token}` },
@@ -128,14 +122,12 @@ export default function GuidesList() {
           if (!res.ok) throw new Error();
 
           const settingsData = await res.json();
-          console.log(settingsData.minecraftUUID);
           if (settingsData.minecraftUUID !== null && settingsData.minecraftUUID !== undefined) {
             avatars[userId] = `https://crafatar.com/avatars/${settingsData.minecraftUUID}?size=256&default=MHF_Steve&overlay`;
           } else {
             avatars[userId] = `https://crafatar.com/avatars/41f24f7d-929b-4018-bceb-fa38c6772eff?size=256&default=MHF_Steve&overlay`;
           }
         }));
-        console.log(avatars);
 
         setUserAvatars(avatars);
 
@@ -230,7 +222,7 @@ export default function GuidesList() {
               <Box display="flex" justifyContent="space-between" alignItems="center" flexGrow={1}>
                 <ListItemText
                   primary={
-                    <MuiLink component={RouterLink} to={`/guides/${slugify(post.title)}`} underline="hover">
+                    <MuiLink component={RouterLink} to={`/guides/${post.postId}`} underline="hover">
                       {post.title}
                     </MuiLink>
                   }
