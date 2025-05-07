@@ -49,7 +49,11 @@ export default function PersonalPage({ openedUserId }: { openedUserId: string })
                     }
                     const settingsData = await ignRes.json();
                     data.ign = settingsData.ign;
-                    data.pictureUrl = `https://crafatar.com/avatars/${settingsData.minecraftUUID}?size=256&default=MHF_Steve&overlay`;
+                    if (settingsData.minecraftUUID !== null && settingsData.minecraftUUID !== undefined) {
+                      data.pictureUrl = `https://crafatar.com/avatars/${settingsData.minecraftUUID}?size=256&default=MHF_Steve&overlay`;
+                    } else {
+                      data.pictureUrl = `https://crafatar.com/avatars/41f24f7d-929b-4018-bceb-fa38c6772eff?size=256&default=MHF_Steve&overlay`;
+                    }
                     
                     // const hypixelRes = await fetch(`https://api.hypixel.net/skyblock/profiles?key=${process.}&uuid=${settingsData.minecraftUUID}`);
                     // const hypixelData = await hypixelRes.json();

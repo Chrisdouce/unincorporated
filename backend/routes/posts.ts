@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
-import { createPost, createReactionOnPost, deletePost, deleteReactionOnPost, getAllPosts, getAllPostsByUserId, getPostByPostId, getUserReactionsOnPost, updatePost, updateReactionOnPost } from '../repositories/posts';
+import { checkIfUserAlreadyReacted, createPost, createReactionOnPost, deletePost, deleteReactionOnPost, getAllPosts, getAllPostsByUserId, getPostByPostId, getUserReactionsOnPost, updatePost, updateReactionOnPost, getAllReactionsByPostId } from '../repositories/posts';
 import { getUserById } from '../repositories/users';
 
 const router = express.Router();
@@ -342,7 +342,7 @@ router.post('/users/:userId/posts/:postId/reactions', verifyToken, async (req, r
             res.status(404).json({ error: 'User not found' });
             return;
         }
-
+        
         //Check if postId is a valid UUID
         if (!isUUID(req.params.postId)) {
             res.status(404).json({ error: 'Invalid UUID' });
@@ -363,7 +363,11 @@ router.post('/users/:userId/posts/:postId/reactions', verifyToken, async (req, r
             res.status(400).json({ error: 'Type must be either like or dislike' });
             return;
         }
-        
+
+        if(await checkIfUserAlreadyReacted(user.userId, req.params.postId)){
+            res.status(400).json({ error: 'User already reacted to this post' });
+            return;
+        }
         const reactions = await createReactionOnPost(user.userId, req.params.postId, req.body.type);
         res.status(201).json(reactions);
     } catch (err) {
@@ -446,6 +450,26 @@ router.delete('/users/:userId/posts/:postId/reactions', verifyToken, async (req,
         const deletedReaction = await deleteReactionOnPost(user.userId, req.params.postId);
         
         res.status(200).json(deletedReaction);
+    } catch (err) {
+        next(err);
+    }
+});
+
+router.get('/posts/:postId/reactions', verifyToken, async (req, res, next) => {
+    try {
+        //Check if postId is a valid UUID
+        if (!isUUID(req.params.postId)) {
+            res.status(404).json({ error: 'Invalid UUID' });
+            return;
+        } 
+        const post = await getPostByPostId(req.params.postId);
+        if (!post) {
+            res.status(404).json({ error: 'Post not found' });
+            return;
+        }
+        
+        const reactions = await getAllReactionsByPostId(req.params.postId);
+        res.status(200).json(reactions);
     } catch (err) {
         next(err);
     }

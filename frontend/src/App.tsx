@@ -100,7 +100,7 @@ export default function App() {
       <AppBar position="static" color="default">
         <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <img src="./src/assets/logo.jpg" alt="Logo" style={{ height: 40 }} />
+              <img src="../src/assets/logo.jpg" alt="Logo" style={{ height: 40 }} />
               <Typography variant="h5">Unincorporated</Typography>
             </Box>
             <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'flex-end' }}>

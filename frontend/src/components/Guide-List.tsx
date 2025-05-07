@@ -16,14 +16,21 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Link,
   IconButton,
+  Tooltip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { useEffect, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import ReactMarkdown from 'react-markdown';
+import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt';
+import ThumbDownAltIcon from '@mui/icons-material/ThumbDownAlt';
+
+const reactionsMap: Record<ReactionType, { icon: React.ReactNode; label: string }> = {
+  like: { icon: <ThumbUpAltIcon fontSize="small" />, label: 'Like' },
+  dislike: { icon: <ThumbDownAltIcon fontSize="small" />, label: 'Dislike' },
+};
 
 interface Guide {
   postId: string;
@@ -31,8 +38,12 @@ interface Guide {
   content: string;
   ownerId: string;
   username: string;
-  createdAt: string; // Added createdAt property
+  createdAt: string;
+  reactions?: { type: ReactionType; count: number }[];
 }
+
+type ReactionType = 'like' | 'dislike' ;
+
 
 function slugify (title: string) {
   return title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
@@ -49,34 +60,95 @@ export default function GuidesList() {
   const [open, setOpen] = useState<boolean>(false);
   const [newTitle, setNewTitle] = useState<string>('');
   const [newContent, setNewContent] = useState<string>('');
+  const [userAvatars, setUserAvatars] = useState<Record<string, string>>({});
   const { token, logout } = useUser();
 
   useEffect(() => {
-    const fetchPosts = async () => {
+    const fetchPostsWithReactions = async () => {
       try {
         if (!token) {
           logout();
           return;
         }
+  
+        // Fetch all posts
         const res = await fetch('http://localhost:3000/api/v1/posts', {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
         });
+  
+        const postsData: Guide[] = await res.json();
+        if (!res.ok) throw new Error('Failed to fetch posts');
+  
+        // Fetch reactions for each post and append them
+        const postsWithReactions = await Promise.all(
+          postsData.map(async (post) => {
+            try {
+              const reactionRes = await fetch(`http://localhost:3000/api/v1/posts/${post.postId}/reactions`, {
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+  
+              const reactionData: { type: ReactionType }[] = await reactionRes.json();
+  
+              if (!reactionRes.ok) throw new Error('Failed to fetch reactions');
+  
+              // Tally reactions
+              const counts: Record<ReactionType, number> = { like: 0, dislike: 0 };
+              reactionData.forEach(({ type }) => {
+                if (type in counts) counts[type]++;
+              });
+  
+              return {
+                ...post,
+                reactions: Object.entries(counts)
+                  .filter(([, count]) => count > 0)
+                  .map(([type, count]) => ({ type: type as ReactionType, count })),
+              };
+            } catch {
+              return { ...post, reactions: [] };
+            }
+          })
+        );
+  
+        setPosts(postsWithReactions);
+        const uniqueOwnerIds = [...new Set(postsWithReactions.map(post => post.ownerId))];
 
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Failed to fetch posts');
-        setPosts(data);
+        const avatars: Record<string, string> = {};
+        await Promise.all(uniqueOwnerIds.map(async (userId) => {
+          console.log(userId);
+          const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/settings`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (!res.ok) throw new Error();
+
+          const settingsData = await res.json();
+          console.log(settingsData.minecraftUUID);
+          if (settingsData.minecraftUUID !== null && settingsData.minecraftUUID !== undefined) {
+            avatars[userId] = `https://crafatar.com/avatars/${settingsData.minecraftUUID}?size=256&default=MHF_Steve&overlay`;
+          } else {
+            avatars[userId] = `https://crafatar.com/avatars/41f24f7d-929b-4018-bceb-fa38c6772eff?size=256&default=MHF_Steve&overlay`;
+          }
+        }));
+        console.log(avatars);
+
+        setUserAvatars(avatars);
+
       } catch (err: any) {
         setError(err.message || 'Something went wrong');
       } finally {
         setLoading(false);
       }
     };
-
-    fetchPosts();
+  
+    fetchPostsWithReactions();
   }, [token, logout]);
+  
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -149,22 +221,44 @@ export default function GuidesList() {
         <List>
           {displayedPosts.map((post) => (
             <ListItem key={post.postId} sx={{ mb: 2 }} divider>
-              <ListItemText
-              primary={
-                <MuiLink component={RouterLink} to={`/guides/${slugify(post.title)}`} underline="hover">
-                  {post.title}
-                </MuiLink>
-              }
-              secondary={
-                <>
-                By: {' '}
-                <Typography component="span" fontWeight="bold">
-                  {post.username || 'Unknown'}
-                </Typography>{' '}
-                </>
-              }
+            <Box display="flex" alignItems="center" width="100%">
+              <img
+                src={userAvatars[post.ownerId]}
+                alt="Avatar"
+                style={{ width: 40, height: 40, borderRadius: '50%', marginRight: 16 }}
               />
-            </ListItem>
+              <Box display="flex" justifyContent="space-between" alignItems="center" flexGrow={1}>
+                <ListItemText
+                  primary={
+                    <MuiLink component={RouterLink} to={`/guides/${slugify(post.title)}`} underline="hover">
+                      {post.title}
+                    </MuiLink>
+                  }
+                  secondary={
+                    <>
+                      By:{' '}
+                      <Typography component="span" fontWeight="bold">
+                        {post.username || 'Unknown'}
+                      </Typography>
+                    </>
+                  }
+                />
+          
+                {post.reactions && post.reactions.length > 0 && (
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 2 }}>
+                    {post.reactions.map(({ type, count }) => (
+                      <Tooltip key={type} title={reactionsMap[type].label}>
+                        <Stack direction="row" alignItems="center" spacing={0.5}>
+                          {reactionsMap[type].icon}
+                          <Typography variant="body2">{count}</Typography>
+                        </Stack>
+                      </Tooltip>
+                    ))}
+                  </Stack>
+                )}
+                </Box>
+              </Box>
+            </ListItem>          
           ))}
         </List>
 

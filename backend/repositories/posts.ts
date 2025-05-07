@@ -194,3 +194,23 @@ export async function deleteReactionOnPost(userId: string, postId: string): Prom
     });
     return deletedReaction;
 }
+
+export async function checkIfUserAlreadyReacted(userId: string, postId: string): Promise<boolean> {
+    const reaction = await db.transaction().execute(async (trx) => {
+        return await trx
+            .selectFrom('reaction')
+            .selectAll()
+            .where('postId', '=', postId)
+            .where('userId', '=', userId)
+            .execute();
+    });
+    return reaction ? reaction.length > 0 : false;
+}
+
+export async function getAllReactionsByPostId(postId: string): Promise<Reaction[]> {
+    return await db
+        .selectFrom('reaction')
+        .selectAll()
+        .where('postId', '=', postId)
+        .execute();
+}
