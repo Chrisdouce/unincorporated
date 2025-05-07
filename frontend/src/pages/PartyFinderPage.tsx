@@ -34,6 +34,7 @@ function PartyFinderPage(): JSX.Element {
   const { token, isLoading, login, logout } = useUser();
   const [exampleUsers, setExampleUsers] = useState<string[]>([]);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const partySizeOptions: Record<string, { default: number; min: number; max: number }> = {
     Kuudra: { default: 4, min: 2, max: 4 },
@@ -308,12 +309,22 @@ useEffect(() => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, pb: 2 }}>
         <Button variant="outlined" onClick={() => setDialogOpen(true)} disabled={ userGroup?.groupId !== undefined }>Create</Button>
           <Box sx={{ flexGrow: 1 }}>
-            <TextField fullWidth label="Search" variant="outlined" />
+          <TextField
+            fullWidth
+            label="Search"
+            variant="outlined"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
           </Box>
-        <Button variant="outlined">Filter</Button>
       </Box>
 
-        {cards.map((card, index) => (
+      {cards
+        .filter(card =>
+          card.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          card.description.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .map((card, index) => (
           <Box
           key={index}
           sx={{
@@ -328,21 +339,18 @@ useEffect(() => {
             gap: 2,
           }}
         >
-          {/* LEFT SIDE: Name + Count + Avatars */}
           <Box sx={{ order: 1, gridColumn: 'span 1', display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
             <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
               {card.name}
             </Typography>
           </Box>
 
-          {/* MIDDLE: Count */}
           <Box sx={{ order: 2, gridColumn: 'span 1', display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
             <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
               {card.size}/{card.capacity}
             </Typography>
           </Box>
 
-          {/* RIGHT SIDE: Avatars */}
           <Box sx={{ order: 3, gridColumn: 'span 3', display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
             <Box sx={{ display: 'flex', gap: 1 }}>
               {[...Array(card.capacity)].map((_, i) => (
@@ -378,7 +386,6 @@ useEffect(() => {
             </Tooltip>
           </Box>
         
-          {/* RIGHT SIDE: Buttons */}
           <Box sx={{ order: 5, gridColumn: 'span 1', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
             <Box sx={{ display: 'flex', gap: 2 }}>
               {card.leaderId === currentUser ? (
