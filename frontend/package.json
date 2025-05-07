@@ -1,12 +1,16 @@
 {
   "name": "frontend",
   "version": "1.0.0",
+  "homepage": "https://chrisdouce.github.io/unincorporated",
   "type": "module",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
+
   },
   "keywords": [],
   "author": "",
@@ -21,6 +25,7 @@
     "eslint": "^9.26.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
+    "gh-pages": "^6.3.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.31.1",
     "vite": "^6.3.4"
