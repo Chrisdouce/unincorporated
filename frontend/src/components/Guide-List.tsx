@@ -42,7 +42,7 @@ export default function Guide() {
 
   useEffect(() => {
     const fetchPosts = async () => {
-      const res = await fetch("http://localhost:3000/api/v1/posts", {
+      const res = await fetch(`${baseUrl}/api/v1/posts`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
