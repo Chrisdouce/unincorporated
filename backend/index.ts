@@ -6,6 +6,7 @@ import usersRouter from './routes/users.js';
 import postsRouter from './routes/posts.js';
 import groupsRouter from './routes/groups.js';
 import friendsRouter from './routes/friends.js';
+import skyblockRouter from './routes/skyblock';
 
 await migrateToLatest();
 
@@ -18,6 +19,7 @@ app.use('/api/v1', usersRouter);
 app.use('/api/v1', postsRouter);
 app.use('/api/v1', groupsRouter);
 app.use('/api/v1', friendsRouter);
+app.use('/api/v1/skyblock', skyblockRouter);
 
 // Error handling middleware (stolen from assignment 2)
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
