@@ -4,8 +4,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "set 'APP_ENV=development' && set 'NODE_ENV=development' && tsx watch --clear-screen=false ./index.ts",
-    "test": "tsx ./tests/setup.ts && set APP_ENV=test&& tsx --test --test-concurrency=1 ./tests/*.test.ts"
+    "dev": "set 'APP_ENV=development' && set 'NODE_ENV=development' && tsx watch --clear-screen=false ./src/index.ts",
+    "test": "tsx ./src/tests/setup.ts && set APP_ENV=test&& tsx --test --test-concurrency=1 ./src/tests/*.test.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
   },
   "keywords": [],
   "author": "",

@@ -110,7 +110,6 @@ useEffect(() => {
       });
       if (res.ok) {
         const data = await res.json();
-        console.log(data);
         setCards(data);
       } else if (res.status === 401) {
         logout();
@@ -128,7 +127,6 @@ useEffect(() => {
       capacity: partySize,
       description: newDescription || 'No description',
     };
-    console.log(JSON.stringify(newCard));
 
     const res = await fetch(`http://localhost:3000/api/v1/users/${currentUser}/group`, {
       method: 'POST',

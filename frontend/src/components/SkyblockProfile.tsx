@@ -34,11 +34,8 @@ const SkyblockProfile = ({ uuid }: { uuid: string }) => {
   if (!profile) return <div>Loading...</div>;
 
   const memberData = profile;
-  console.log(memberData);
   const rawUuid = uuid.replace(/-/g, '');
-  console.log(rawUuid);
   const coinPurse = profile.members[rawUuid].currencies.coin_purse;
-  console.log(coinPurse);
 
   return (
     <div>

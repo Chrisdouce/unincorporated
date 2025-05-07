@@ -1,302 +1,349 @@
+"use client";
+
 import {
-  List,
-  ListItem,
-  ListItemText,
-  Typography,
-  CircularProgress,
-  Container,
-  Paper,
-  Link as MuiLink,
-  TextField,
-  Pagination,
-  Stack,
   Box,
   Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  IconButton,
-  Tooltip,
-} from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import { useEffect, useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
-import { useUser } from '../context/UserContext';
-import ReactMarkdown from 'react-markdown';
-import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt';
-import ThumbDownAltIcon from '@mui/icons-material/ThumbDownAlt';
-
-const reactionsMap: Record<ReactionType, { icon: React.ReactNode; label: string }> = {
-  like: { icon: <ThumbUpAltIcon fontSize="small" />, label: 'Like' },
-  dislike: { icon: <ThumbDownAltIcon fontSize="small" />, label: 'Dislike' },
-};
-
-interface Guide {
-  postId: string;
-  title: string;
-  content: string;
-  ownerId: string;
-  username: string;
-  createdAt: string;
-  reactions?: { type: ReactionType; count: number }[];
-}
+  Divider,
+  List,
+  ListItem,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { useEffect, useState } from "react";
+import { useUser } from "../context/UserContext";
+import ReactMarkdown from "react-markdown";
 
 type ReactionType = 'like' | 'dislike' ;
 
-const ITEMS_PER_PAGE = 5;
+export default function Guide() {
 
-export default function GuidesList() {
-  const [posts, setPosts] = useState<Guide[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [page, setPage] = useState(1);
-  const [open, setOpen] = useState<boolean>(false);
-  const [newTitle, setNewTitle] = useState<string>('');
-  const [newContent, setNewContent] = useState<string>('');
-  const [userAvatars, setUserAvatars] = useState<Record<string, string>>({});
+  const [posts, setPosts] = useState<any[]>([]);
+  const [open, setOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newContent, setNewContent] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const { token, logout } = useUser();
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+
+  const displayedPosts = posts.filter(
+    (post) =>
+      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.content.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   useEffect(() => {
-    const fetchPostsWithReactions = async () => {
-      try {
-        if (!token) {
-          logout();
-          return;
-        }
-  
-        // Fetch all posts
-        const res = await fetch('http://localhost:3000/api/v1/posts', {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        });
-  
-        const postsData: Guide[] = await res.json();
-        if (!res.ok) throw new Error('Failed to fetch posts');
-  
-        // Fetch reactions for each post and append them
-        const postsWithReactions = await Promise.all(
-          postsData.map(async (post) => {
-            try {
-              const reactionRes = await fetch(`http://localhost:3000/api/v1/posts/${post.postId}/reactions`, {
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}`,
-                },
-              });
-  
-              const reactionData: { type: ReactionType }[] = await reactionRes.json();
-  
-              if (!reactionRes.ok) throw new Error('Failed to fetch reactions');
-  
-              // Tally reactions
-              const counts: Record<ReactionType, number> = { like: 0, dislike: 0 };
-              reactionData.forEach(({ type }) => {
-                if (type in counts) counts[type]++;
-              });
-  
-              return {
-                ...post,
-                reactions: Object.entries(counts)
-                  .filter(([, count]) => count > 0)
-                  .map(([type, count]) => ({ type: type as ReactionType, count })),
-              };
-            } catch {
-              return { ...post, reactions: [] };
-            }
-          })
-        );
-  
-        setPosts(postsWithReactions);
-        const uniqueOwnerIds = [...new Set(postsWithReactions.map(post => post.ownerId))];
+    const fetchPosts = async () => {
+      const res = await fetch("http://localhost:3000/api/v1/posts", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      // Fetch reactions for each post and append them
+      const postsWithReactions = await Promise.all(
+        data.map(async (post) => {
+          try {
+            const reactionRes = await fetch(`http://localhost:3000/api/v1/posts/${post.postId}/reactions`, {
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+            });
 
-        const avatars: Record<string, string> = {};
-        await Promise.all(uniqueOwnerIds.map(async (userId) => {
-          const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/settings`, {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${token}` },
-          });
-          if (!res.ok) throw new Error();
+            const reactionData: { type: ReactionType }[] = await reactionRes.json();
 
-          const settingsData = await res.json();
-          if (settingsData.minecraftUUID !== null && settingsData.minecraftUUID !== undefined) {
-            avatars[userId] = `https://crafatar.com/avatars/${settingsData.minecraftUUID}?size=256&default=MHF_Steve&overlay`;
-          } else {
-            avatars[userId] = `https://crafatar.com/avatars/41f24f7d-929b-4018-bceb-fa38c6772eff?size=256&default=MHF_Steve&overlay`;
+            if (!reactionRes.ok) throw new Error('Failed to fetch reactions');
+
+            // Tally reactions
+            const counts: Record<ReactionType, number> = { like: 0, dislike: 0 };
+            reactionData.forEach(({ type }) => {
+              if (type in counts) counts[type]++;
+            });
+            return {
+              ...post,
+              reactions: Object.entries(counts)
+                .filter(([, count]) => count > 0)
+                .map(([type, count]) => ({ type: type as ReactionType, count })),
+            };
+          } catch {
+            return { ...post, reactions: [] };
           }
-        }));
+        })
+      );
 
-        setUserAvatars(avatars);
-
-      } catch (err: any) {
-        setError(err.message || 'Something went wrong');
-      } finally {
-        setLoading(false);
-      }
+      setPosts(postsWithReactions);
     };
-  
-    fetchPostsWithReactions();
-  }, [token, logout]);
-  
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-    setPage(1); // Reset to first page on new search
-  };
+    if (token) fetchPosts();
+  }, [token]);
 
-  const handleCreatePost = async () => {
-    if (!newTitle || !newContent) return;
+  async function handleSavePost() {
+    if (!newTitle || !newContent) 
+      return alert("Title and content are required.");
+
     const userId = token ? JSON.parse(atob(token.split('.')[1])).userId : null;
+
     try {
-      const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/posts`, {
-        method: 'POST',
+      const route = isEditing
+        ? `/api/v1/users/${userId}/posts/${editingPostId}`
+        : `/api/v1/users/${userId}/posts`;
+
+      const method = isEditing ? 'PUT' : 'POST';
+
+      const res = await fetch(`http://localhost:3000${route}`, {
+        method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           title: newTitle,
           content: newContent,
         }),
       });
-  
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to create post');
-  
-      setPosts((prev) => [data, ...prev]);
-      setNewTitle('');
-      setNewContent('');
+      if (res.status === 401) {
+        logout();
+        return;
+      }
+      if (!res.ok) throw new Error(data.message || 'Failed to save post');
+
+      if (isEditing) {
+        setPosts((prev) =>
+          prev.map((post) =>
+            post.postId === editingPostId ? { ...post, ...data } : post
+          )
+        );
+      } else {
+        setPosts((prev) => [data, ...prev]);
+      }
+
+      setNewTitle("");
+      setNewContent("");
       setOpen(false);
+      setIsEditing(false);
+      setEditingPostId(null);
     } catch (err: any) {
-      alert(err.message || 'Something went wrong while creating the post.');
+      alert(err.message || "Something went wrong while saving the post.");
     }
   };
 
-  const filteredPosts = posts.filter((post) =>
-    post.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  async function handleDeletePost(postId: string) {
+    const confirmed = window.confirm("Are you sure you want to delete this post?");
+    if (!confirmed) return;
 
-  const totalPages = Math.ceil(filteredPosts.length / ITEMS_PER_PAGE);
-  const displayedPosts = filteredPosts.slice(
-    (page - 1) * ITEMS_PER_PAGE,
-    page * ITEMS_PER_PAGE
-  );
+    try {
+      const userId = token ? JSON.parse(atob(token.split('.')[1])).userId : null;
+      const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/posts/${postId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-  if (loading) return <CircularProgress />;
-  if (error) return <Typography color="error">{error}</Typography>;
+      if (!res.ok) throw new Error("Failed to delete post");
 
-  return (
-    <Container sx={{ mt: 2 }}>
-      <Paper elevation={3} sx={{ p: 3 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h5">Search for Guides</Typography>
-          <IconButton color="primary" onClick={() => setOpen(true)}>
-            Create Guide<AddIcon />
-          </IconButton>
+      setPosts((prev) => prev.filter((post) => post.postId !== postId));
+    } catch (err: any) {
+      alert(err.message || "Error deleting post");
+    }
+  }
+
+  return (<>
+    <Paper sx={{ margin: 2, padding: 5 }}>
+      <Typography variant="h5" align="center">
+        {"Guides"}
+      </Typography>
+    </Paper>
+    <Box sx={{ padding: 2, px: 5, pt: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, pb: 2 }}>
+        <Button
+          variant="outlined"
+          onClick={() => {
+            setOpen(true);
+            setIsEditing(false);
+            setEditingPostId(null);
+            setNewTitle("");
+            setNewContent("");
+          }}
+        >
+          Create
+        </Button>
+
+        <Box sx={{ flexGrow: 1 }}>
+          <TextField fullWidth label="Search for Guides" variant="outlined" />
         </Box>
-        <Box mb={2}>
-          <TextField
-            label="Search Guides"
-            variant="outlined"
-            value={searchTerm}
-            onChange={handleSearch}
-          />
-          
-        </Box>
-        <Typography variant="body2" color="text.secondary" mb={2}>
-            {filteredPosts.length} {filteredPosts.length === 1 ? 'result' : 'results'} found
-          </Typography>
+        <Button variant="outlined">Filter</Button>
+      </Box>
+    </Box>
+    <Box margin="auto" padding={2}>
+      
+      <Divider sx={{ marginY: 2 }} />
+      <List>
+        {displayedPosts.map((post) => (
+          <ListItem
+            key={post.postId}
+            sx={{
+              flexDirection: "column",
+              alignItems: "flex-start",
+              border: "1px solid #ccc",
+              borderRadius: 2,
+              padding: 2,
+              marginBottom: 2,
+            }}
+          >
+            <Typography
+              variant="h6"
+              component="a"
+              href={`/guides/${post.postId}`}
+              sx={{
+                textDecoration: "none",
+                color: "primary.main",
+                '&:hover': { textDecoration: "underline" },
+              }}
+            >
+              {post.title}
+            </Typography>
 
-        <List>
-          {displayedPosts.map((post) => (
-            <ListItem key={post.postId} sx={{ mb: 2 }} divider>
-            <Box display="flex" alignItems="center" width="100%">
-              <img
-                src={userAvatars[post.ownerId]}
-                alt="Avatar"
-                style={{ width: 40, height: 40, borderRadius: '50%', marginRight: 16 }}
-              />
-              <Box display="flex" justifyContent="space-between" alignItems="center" flexGrow={1}>
-                <ListItemText
-                  primary={
-                    <MuiLink component={RouterLink} to={`/guides/${post.postId}`} underline="hover">
-                      {post.title}
-                    </MuiLink>
-                  }
-                  secondary={
-                    <>
-                      By:{' '}
-                      <Typography component="span" fontWeight="bold">
-                        {post.username || 'Unknown'}
-                      </Typography>
-                    </>
-                  }
-                />
-          
-                {post.reactions && post.reactions.length > 0 && (
-                  <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 2 }}>
-                    {post.reactions.map(({ type, count }) => (
-                      <Tooltip key={type} title={reactionsMap[type].label}>
-                        <Stack direction="row" alignItems="center" spacing={0.5}>
-                          {reactionsMap[type].icon}
-                          <Typography variant="body2">{count}</Typography>
-                        </Stack>
-                      </Tooltip>
-                    ))}
-                  </Stack>
-                )}
-                </Box>
-              </Box>
-            </ListItem>          
-          ))}
-        </List>
+            <Typography
+              variant="body1"
+              sx={{
+                whiteSpace: "pre-wrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                display: "-webkit-box",
+                WebkitLineClamp: 5, // show only 5 lines
+                WebkitBoxOrient: "vertical",
+              }}
+            >
+              {post.content}
+            </Typography>
 
-        {filteredPosts.length > ITEMS_PER_PAGE && (
-          <Stack alignItems="center" mt={3}>
-            <Pagination
-              count={totalPages}
-              page={page}
-              onChange={(_, value) => setPage(value)}
+            <Typography variant="caption" color="textSecondary">
+              Created at: {new Date(post.createdAt).toLocaleString()}
+            </Typography>
+
+            <Typography
+              variant="caption"
               color="primary"
-            />
-          </Stack>
-        )}
-      </Paper>
+              component="a"
+              href={`/users/${post.ownerId}`}
+              sx={{ textDecoration: "none", "&:hover": { textDecoration: "underline" }, mt: 0.5 }}
+            >
+              @{post.username || "Unknown"}
+            </Typography>
 
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Create New Guide</DialogTitle>
-        <DialogContent>
+            {post.reactions && post.reactions.length > 0 && (
+              <Stack direction="row" spacing={1} mt={1}>
+                {post.reactions.map((reaction) => (
+                  <Typography key={reaction.type} variant="caption" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                    {reaction.type === "like" ? "👍" : "👎"} {reaction.count}
+                  </Typography>
+                ))}
+              </Stack>
+            )}
+          </ListItem>
+        ))}
+      </List>
+
+
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        fullWidth
+        maxWidth="md"
+        PaperProps={{
+          sx: {
+            height: '90vh',
+            width: '100%',
+            maxWidth: '100%',
+          },
+        }}
+      >
+        <DialogTitle>{isEditing ? "Edit Guide" : "Create New Guide"}</DialogTitle>
+        <DialogContent
+          dividers
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+            overflow: 'hidden',
+            height: '100%',
+          }}
+        >
           <TextField
             margin="dense"
             label="Title"
             fullWidth
+            required
             variant="outlined"
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
           />
-          <TextField
-            margin="dense"
-            label="Content (Markdown supported)"
-            fullWidth
-            multiline
-            minRows={4}
-            variant="outlined"
-            value={newContent}
-            onChange={(e) => setNewContent(e.target.value)}
-          />
-          <Typography variant="subtitle1" mt={2}>Preview:</Typography>
-          <Paper variant="outlined" sx={{ p: 1, minHeight: 100 }}>
-            <ReactMarkdown>{newContent || '*Nothing to preview yet...*'}</ReactMarkdown>
-          </Paper>
+
+          <Box sx={{ flex: 1, display: 'flex', gap: 1, overflow: 'hidden' }}>
+            <TextField
+              label="Content (Markdown supported)"
+              fullWidth
+              multiline
+              required
+              variant="outlined"
+              value={newContent}
+              onChange={(e) => setNewContent(e.target.value)}
+              sx={{
+                flex: 1,
+                overflow: 'auto',
+                height: '100%',
+                '& .MuiInputBase-root': {
+                  height: '100%',
+                  alignItems: 'flex-start',
+                },
+                '& textarea': {
+                  height: '100% !important',
+                },
+              }}
+            />
+
+            <Box
+              sx={(theme) => ({
+                flex: 1,
+                overflowY: 'auto',
+                border: '1px solid',
+                borderColor: theme.palette.divider,
+                borderRadius: 1,
+                padding: 1,
+                backgroundColor: theme.palette.background.default,
+                color: theme.palette.text.primary,
+              })}
+            >
+              <Typography variant="subtitle1">Preview:</Typography>
+              <ReactMarkdown>{newContent || '*Nothing to preview yet...*'}</ReactMarkdown>
+            </Box>
+          </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleCreatePost} variant="contained">Post</Button>
+          <Button onClick={() => {
+            setOpen(false); 
+            setIsEditing(false);
+            setNewTitle("");
+            setNewContent("");
+            setEditingPostId(null);}}>Cancel</Button>
+          <Button onClick={handleSavePost} variant="contained">
+            {isEditing ? "Update" : "Post"}
+          </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+
+    </Box>
+    </>
   );
 }

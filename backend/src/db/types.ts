@@ -40,7 +40,6 @@ export type GroupTable = {
     size: number;
     description: string;
     type: string;
-    size: number;
     capacity: number;
     createdAt: Date;
     updatedAt: Date;

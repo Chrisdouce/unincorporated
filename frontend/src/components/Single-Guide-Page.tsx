@@ -4,18 +4,21 @@ import {
   Container,
   Paper,
   CircularProgress,
-  IconButton,
   Tooltip,
   Popover,
   Stack,
-  Box
+  Box,
+  IconButton,
+  Divider,
 } from '@mui/material';
 import { useUser } from '../context/UserContext';
 import ReactMarkdown from 'react-markdown';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt';
 import ThumbDownAltIcon from '@mui/icons-material/ThumbDownAlt';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import TagFacesIcon from '@mui/icons-material/TagFaces';
+import { Link } from 'react-router-dom';
 
 const reactionsMap = {
   like: { icon: <ThumbUpAltIcon />, label: 'Like' },
@@ -27,6 +30,7 @@ type ReactionType = keyof typeof reactionsMap;
 interface Author {
   id: string;
   username: string;
+  minecraftUUID?: string;
 }
 
 interface Reaction {
@@ -52,6 +56,7 @@ export default function Guide(): JSX.Element {
   const [userReaction, setUserReaction] = useState<ReactionType | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const navigate = useNavigate();
 
   const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -68,9 +73,6 @@ export default function Guide(): JSX.Element {
 
   const open = Boolean(anchorEl);
 
-  const slugify = (str: string) =>
-    str.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
-
   const fetchPost = async () => {
     try {
       if (!token) {
@@ -78,7 +80,7 @@ export default function Guide(): JSX.Element {
         return;
       }
 
-      setUserReaction(null); // Reset early
+      setUserReaction(null);
 
       const res = await fetch(`http://localhost:3000/api/v1/posts/${postId}`, {
         headers: {
@@ -95,7 +97,37 @@ export default function Guide(): JSX.Element {
         setError('Post not found');
         return;
       }
+      const userRes = await fetch(`http://localhost:3000/api/v1/users/${data.ownerId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const dataUser = await userRes.json();
+      if (!dataUser) {
+        setError('Post not found');
+        return;
+      }
+      if (userRes.status === 401) {
+        logout();
+        return;
+      }
 
+      const ign = await fetch(`http://localhost:3000/api/v1/users/${data.ownerId}/settings`, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const ignData = await ign.json();
+      if (ign.status === 401) {
+        logout();
+        return;
+      }
+      if (ignData.minecraftUUID) {
+        data.minecraftUUID = ignData.minecraftUUID;
+      }
+      data.username = dataUser.username;
       const userId = JSON.parse(atob(token.split('.')[1])).userId;
       const reactionsRes = await fetch(
         `http://localhost:3000/api/v1/users/${userId}/posts/${postId}/reactions`,
@@ -121,6 +153,7 @@ export default function Guide(): JSX.Element {
         author: {
           id: data.ownerId,
           username: data.username,
+          minecraftUUID: data.minecraftUUID,
         },
         likes: data.likes,
         dislikes: data.dislikes,
@@ -191,15 +224,32 @@ export default function Guide(): JSX.Element {
 
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
-      <Paper elevation={3} sx={{ p: 3 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-          <Box>
-            <Typography variant="h4" gutterBottom>
-              {post.title}
-            </Typography>
-            <Typography variant="subtitle1" gutterBottom color="text.secondary">
-              By: {post.author?.username ?? 'Unknown'}
-            </Typography>
+      <IconButton onClick={() => navigate('/guides')} color="primary">
+        <ArrowBackIcon />
+      </IconButton>
+      <Paper elevation={6} sx={{ p: 3, boxShadow: 3 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Box display="flex" alignItems="center">
+            <img
+              src={post.author.minecraftUUID ? `https://crafatar.com/avatars/${post.author.minecraftUUID}?size=64&default=MHF_Steve&overlay` : 'https://crafatar.com/avatars/579ad0c0-c7ef-4004-8c09-e1da6ec7402c?size=64&default=MHF_Steve&overlay'}
+              alt="User Avatar"
+              style={{
+                marginRight: 16,
+                border: '2px solid #ddd',
+                padding: 2,
+              }}
+            />
+            <Box>
+              <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
+                {post.title}
+              </Typography>
+              <Typography variant="subtitle1" color="text.secondary">
+                By{' '}
+                <Link to={`/users/${post.author.id}`} style={{ textDecoration: 'none', color: 'primary.main' }}>
+                  {post.author.username ?? 'Unknown'}
+                </Link>
+              </Typography>
+            </Box>
           </Box>
 
           <Box>
@@ -212,10 +262,7 @@ export default function Guide(): JSX.Element {
               open={open}
               anchorEl={anchorEl}
               onClose={handleCloseMenu}
-              anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'left',
-              }}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
             >
               <Stack direction="row" spacing={1} p={1}>
                 {Object.entries(reactionsMap).map(([type, { icon, label }]) => (
@@ -229,6 +276,8 @@ export default function Guide(): JSX.Element {
             </Popover>
           </Box>
         </Box>
+
+        <Divider sx={{ my: 2 }} />
 
         <Box mt={3}>
           <ReactMarkdown>{post.content}</ReactMarkdown>

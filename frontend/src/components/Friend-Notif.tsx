@@ -25,6 +25,7 @@ export default function FriendNotif() {
     useEffect(() => {
       async function fetchFriendRequests() {
         try {
+            console.log("Fetching friend requests...");
             if (!token) {
                 logout();
                 return;

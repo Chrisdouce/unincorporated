@@ -8,7 +8,6 @@ export type Group = {
     size: number;
     description: string;
     type: string;
-    size: number;
     capacity: number;
     createdAt: Date;
     updatedAt: Date;
@@ -89,7 +88,6 @@ export async function createGroup(group: Omit<Group, 'groupId' | 'createdAt' | '
                 size: group.size,
                 description: group.description,
                 type: group.type,
-                size: group.size,
                 capacity: group.capacity,
                 createdAt: new Date(),
                 updatedAt: new Date()

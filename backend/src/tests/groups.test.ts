@@ -3,7 +3,7 @@ import supertest from 'supertest';
 import { app } from "../index.js";
 import assert from "node:assert/strict";
 import 'dotenv/config';
-import { getAllUsers, getUserByUsername } from "../repositories/users.js";
+import { getAllUsers, getUserByUsername } from "../repositories/users";
 
 const request = supertest(app);
 
@@ -81,10 +81,12 @@ describe('Group routes', () => {
             type: 'Diana'
         });
         assert.strictEqual(res.status, 400);
-        assert.strictEqual(res.body.error, 'description is required');
+        assert.strictEqual(res.body.error, 'size is required');
 
         res = await request.post(`/api/v1/users/${user.userId}/group`).set('Authorization', `Bearer ${token}`).send({
             name: 'Test Group',
+            size: 5,
+            capacity: 5,
             description: 'Test group descripTest group descriTest group descriTest group descriTest group descriTest group descritionTest group descriptionTest group descriptionTest group descriptionTest group descriptionTest group descriptionTest group descriptionTest group description',
             type: 'Diana'
         });
@@ -94,7 +96,9 @@ describe('Group routes', () => {
         res = await request.post(`/api/v1/users/${user.userId}/group`).set('Authorization', `Bearer ${token}`).send({
             name: 'Test Group',
             description: 'Test group description',
-            type: 'badtype'
+            type: 'badtype',
+            size: 5,
+            capacity: 5,
         });
         assert.strictEqual(res.status, 400);
         assert.match(res.body.error, /badtype must be one of/);
@@ -104,7 +108,9 @@ describe('Group routes', () => {
         let res = await request.post(`/api/v1/users/${user.userId}/group`).set('Authorization', `Bearer ${token}`).send({
             name: 'Test Group',
             description: 'Test group description',
-            type: 'Diana'
+            type: 'Diana',
+            size: 5,
+            capacity: 5,
         });
         groupId = res.body.groupId;
         assert.strictEqual(res.status, 201);
@@ -115,7 +121,9 @@ describe('Group routes', () => {
         let res = await request.post(`/api/v1/users/${user.userId}/group`).set('Authorization', `Bearer ${token}`).send({
             name: 'Test Group',
             description: 'Test group description',
-            type: 'Diana'
+            type: 'Diana',
+            size: 5,
+            capacity: 5,
         });
         assert.strictEqual(res.status, 400);
         assert.strictEqual(res.body.error, 'User already has a group');
@@ -171,7 +179,9 @@ describe('Group routes', () => {
         let res = await request.put(`/api/v1/users/${user.userId}/group`).set('Authorization', `Bearer ${token}`).send({
             name: 'Updated Group',
             description: 'new description',
-            type: 'Kuudra'
+            type: 'Kuudra',
+            size: 5,
+            capacity: 5,
         });
         assert.strictEqual(res.status, 200);
         assert.deepStrictEqual(res.body.name, 'Updated Group');
@@ -181,21 +191,26 @@ describe('Group routes', () => {
         let res = await request.put(`/api/v1/users/${user.userId}/group`).set('Authorization', `Bearer ${token}`).send({
             name: 'Updated Group',
             description: 'Updated group description',
-            type: 'badtype'
+            type: 'badtype',
+            size: 5,
+            capacity: 5,
         });
         assert.strictEqual(res.status, 400);
         assert.match(res.body.error, /badtype must be one of/);
 
         res = await request.put(`/api/v1/users/${user.userId}/group`).set('Authorization', `Bearer ${token}`).send({
             description: 'Updated group description',
-            type: 'Kuudra'
+            type: 'Kuudra',
+            capacity: 5,
         });
         assert.strictEqual(res.status, 400);
-        assert.strictEqual(res.body.error, 'name is required');
+        assert.strictEqual(res.body.error, 'size is required');
 
         res = await request.put(`/api/v1/users/${user.userId}/group`).set('Authorization', `Bearer ${token}`).send({
             name: 'Updated Group',
-            type: 'Kuudra'
+            type: 'Kuudra',
+            size: 5,
+            capacity: 5,
         });
         assert.strictEqual(res.status, 400);
         assert.strictEqual(res.body.error, 'description is required');
@@ -203,7 +218,9 @@ describe('Group routes', () => {
         res = await request.put(`/api/v1/users/${user2.userId}/group`).set('Authorization', `Bearer ${token2}`).send({
             name: 'Updated Group',
             description: 'Updated group description',
-            type: 'Kuudra'
+            type: 'Kuudra',
+            size: 5,
+            capacity: 5,
         });
         assert.strictEqual(res.status, 404);
         assert.strictEqual(res.body.error, 'Group not found');
@@ -225,7 +242,9 @@ describe('Group routes', () => {
         let res = await request.put(`/api/v1/users/${user2.userId}/group`).set('Authorization', `Bearer ${token2}`).send({
             name: 'Updated Group',
             description: 'Updated group description',
-            type: 'Kuudra'
+            type: 'Kuudra',
+            size: 5,
+            capacity: 5,
         });
         assert.strictEqual(res.status, 403);
         assert.strictEqual(res.body.error, 'User is not the leader of the group');

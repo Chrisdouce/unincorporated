@@ -5,7 +5,6 @@ import {
     Typography,
     TextField,
     Button,
-    Divider,
     Link,
     Checkbox,
     FormControlLabel,
@@ -13,7 +12,6 @@ import {
     Fade
 } from '@mui/material';
 import LoginIcon from '@mui/icons-material/Login';
-import GoogleIcon from '@mui/icons-material/Google';
 import { Link as RouterLink } from 'react-router-dom';
 import { JSX, useState } from 'react';
 
@@ -175,25 +173,6 @@ export default function LoginPage({onLogin}: Props): JSX.Element {
                                 </Link>
                             </Typography>
                         </Box>
-                        <Box sx={{ mt: 3, mb: 2, display: 'flex', alignItems: 'center' }}>
-                            <Divider sx={{ flexGrow: 1 }} />
-                            <Typography variant="body2" sx={{ px: 2 }}>Or</Typography>
-                            <Divider sx={{ flexGrow: 1 }} />
-                        </Box>
-                        <Button
-                            fullWidth
-                            variant="contained"
-                            startIcon={<GoogleIcon />}
-                            sx={{ 
-                                mt: 1, 
-                                mb: 2, 
-                                bgcolor: '#4285F4', 
-                                color: 'white', 
-                                '&:hover': { bgcolor: '#357AE8' } 
-                            }}
-                        >
-                            Sign in with Google
-                        </Button>
                     </Box>
                 </Box>
             </Container>
