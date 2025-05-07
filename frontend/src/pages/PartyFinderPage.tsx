@@ -2,7 +2,8 @@ import React, { JSX, use, useEffect, useState } from 'react';
 import {
   Box, AppBar, Toolbar, Typography, Tabs, Tab, Button, IconButton,
   Menu, MenuItem, TextField, Paper,
-  Tooltip, Icon
+  Tooltip, Icon,
+  Divider
 } from '@mui/material';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -384,6 +385,7 @@ function PartyFinderPage(): JSX.Element {
 //   }
 
   return (
+    <>
     <Box>
       <Paper sx={{ margin: 2, padding: 5 }}>
         <Typography variant="h5" align="center">
@@ -397,7 +399,7 @@ function PartyFinderPage(): JSX.Element {
           <Box sx={{ flexGrow: 1 }}>
           <TextField
             fullWidth
-            label="Search"
+            label="Search for Party"
             variant="outlined"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -442,7 +444,6 @@ function PartyFinderPage(): JSX.Element {
               </Typography>
             </Tooltip>
           </Box>
-
           <Box sx={{ order: 3, gridColumn: 'span 3', display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
             <Box sx={{ display: 'flex', gap: 1 }}>
               {card.members.map((member, i) => (
@@ -522,6 +523,7 @@ function PartyFinderPage(): JSX.Element {
         </Box>
         ))}
       </Box>
+      <Divider sx={{ marginY: 2 }} />
       
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
         <form onSubmit={(e) => { e.preventDefault(); handleCreateCard(); }}>
@@ -675,6 +677,13 @@ function PartyFinderPage(): JSX.Element {
         </form>
       </Dialog>
     </Box>
+
+    {cards.length === 0 && (
+      <Typography align="center" sx={{ paddingTop: 4 }}>
+        No parties found :(
+      </Typography>
+    )}
+    </>
   );
 }
 
