@@ -214,7 +214,7 @@ export default function PersonalPage({ openedUserId }: Props): JSX.Element {
             </Box>
           )}
         </Grid>
-
+      {/*
         <Box mt={4}>
           <Typography variant="h5" gutterBottom>
             Skyblock Stats
@@ -233,7 +233,7 @@ export default function PersonalPage({ openedUserId }: Props): JSX.Element {
               </Grid>
             ))}
           </Grid>
-        </Box>
+        </Box>*/}
       </Paper>
 
       <SkyblockProfile uuid={userData.minecraftUUID} />
