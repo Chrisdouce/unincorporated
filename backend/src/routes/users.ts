@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { createUser, getAllUsers, getUserById, getUserByUsername, updateUser, deleteUser, updateUserSettings, getUserSettings } from '../repositories/users.js';
+import { createUser, getAllUsers, getUserById, getUserByUsername, updateUser, deleteUser, updateUserSettings, getUserSettings, getAllSettings } from '../repositories/users.js';
 import 'dotenv/config';
 
 const router = express.Router();
@@ -98,7 +98,7 @@ router.post('/users', async (req, res, next) => {
 });
 
 //Gets a single user by UUID
-router.get('/users/:userId', async (req, res, next) => {
+router.get('/users/:userId', verifyToken, async (req, res, next) => {
     try {
         //Check if userId is a valid UUID
         if (!isUUID(req.params.userId)) {
@@ -124,7 +124,7 @@ router.get('/users/:userId', async (req, res, next) => {
 });
 
 //Updates a user
-router.put('/users/:userId', async (req, res, next) => {
+router.put('/users/:userId', verifyToken, async (req, res, next) => {
     try {
         //Check if userId is a valid UUID
         if (!isUUID(req.params.userId)) {
@@ -184,7 +184,7 @@ router.put('/users/:userId', async (req, res, next) => {
 });
 
 //Deletes a user 
-router.delete('/users/:userId', async (req, res, next) => {
+router.delete('/users/:userId', verifyToken, async (req, res, next) => {
     try {
         //Check if userId is a valid UUID
         if (!isUUID(req.params.userId)) {
@@ -314,5 +314,9 @@ router.put('/users/:userId/settings', verifyToken, async (req, res, next) => {
     res.status(200).json(updatedSettings);
 });
 
+router.get('/settings', verifyToken, async (req, res, next) => {
+    const allSettings = await getAllSettings();
+    res.status(200).json(allSettings);
+});
 
 export default router;
