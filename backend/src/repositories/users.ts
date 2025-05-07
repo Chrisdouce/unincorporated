@@ -140,3 +140,11 @@ export async function updateUserSettings(userSettings: Settings): Promise<Settin
     });
     return settings;
 }
+
+export async function getAllSettings(): Promise<Settings[] | null> {
+    const settings = await db
+        .selectFrom('settings')
+        .selectAll()
+        .execute();
+    return settings;
+}

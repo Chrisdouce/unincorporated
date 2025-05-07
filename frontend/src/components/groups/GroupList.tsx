@@ -13,6 +13,7 @@ import { Route, Routes, Navigate } from "react-router";
 import LoginPage from '../../pages/Login-Form';
 import { useUser } from "../../context/UserContext";
 import SignUpPage from '../../pages/Signup-Form';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 
 interface CardData {
   name: string;
@@ -37,6 +38,32 @@ function PartyFinderPage(): JSX.Element {
   const { token, isLoading, login, logout } = useUser();
   const [exampleUsers, setExampleUsers] = useState<string[]>([]);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async (groupId: string) => {
+    try {
+      const res = await fetch(`http://localhost:3000/api/v1/users`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.status === 401) {
+        logout();
+        return;
+      }
+      const data = await res.json();
+      const usersInGroup = data.filter((user: { userId: string, groupId: string | null }) => user.groupId === groupId);
+
+      const usernames = usersInGroup.map((user: { username: string }) => user.username);
+      const command = `/p invite ${usernames.join(' ')}`;
+      await navigator.clipboard.writeText(command);
+      setCopied(true);
+      console.log("Invite command copied to clipboard:", command);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy invite command:", err);
+    }
+  };
+  
 
   const partySizeOptions: Record<string, { default: number; min: number; max: number }> = {
     Kuudra: { default: 4, min: 2, max: 4 },
@@ -113,7 +140,6 @@ useEffect(() => {
       });
       if (res.ok) {
         const data = await res.json();
-        console.log(data);
         setCards(data);
       } else if (res.status === 401) {
         logout();
@@ -336,14 +362,20 @@ useEffect(() => {
 
           {/* MIDDLE: Count */}
           <Box sx={{ order: 2, gridColumn: 'span 1', display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
-            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-              {card.size}/{card.capacity}
-            </Typography>
+            <Tooltip title={copied ? 'Copied!' : 'Click to copy invite command'}>
+              <Typography
+                variant="h6"
+                sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                onClick={() => handleCopy(card.groupId)}
+              >
+                {card.size}/{card.capacity}
+              </Typography>
+            </Tooltip>
           </Box>
-
+          
           {/* RIGHT SIDE: Avatars */}
           <Box sx={{ order: 3, gridColumn: 'span 3', display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ display: 'flex', gap: 1, mr: 1 }}>
               {[...Array(card.capacity)].map((_, i) => (
                 <Box
                   key={i}
