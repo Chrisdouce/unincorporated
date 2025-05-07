@@ -113,6 +113,7 @@ router.get('/users/:userId', async (req, res, next) => {
         const userWithoutPassword = {
             userId: user.userId,
             username: user.username,
+            groupId: user.groupId,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt
         };

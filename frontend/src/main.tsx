@@ -1,11 +1,10 @@
-import { StrictMode, use } from 'react'
+import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { UserProvider } from './context/UserContext.tsx'
 import { ThemeProvider } from '@emotion/react'
-import { createTheme, CssBaseline } from '@mui/material'
-import { BrowserRouter } from 'react-router-dom';
+import { createTheme } from '@mui/material'
 
 const darkTheme = createTheme({
   palette: {
@@ -16,12 +15,8 @@ const darkTheme = createTheme({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider theme={darkTheme}>
-      <CssBaseline />
       <UserProvider>
-        <BrowserRouter>
-          <CssBaseline />
-          <App />
-        </BrowserRouter>
+        <App />
       </UserProvider>
     </ThemeProvider>
   </StrictMode>
