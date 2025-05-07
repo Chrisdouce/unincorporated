@@ -68,9 +68,6 @@ export default function Guide(): JSX.Element {
 
   const open = Boolean(anchorEl);
 
-  const slugify = (str: string) =>
-    str.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
-
   const fetchPost = async () => {
     try {
       if (!token) {
