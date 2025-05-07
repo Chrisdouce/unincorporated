@@ -113,6 +113,7 @@ router.get('/users/:userId', async (req, res, next) => {
         const userWithoutPassword = {
             userId: user.userId,
             username: user.username,
+            groupId: user.groupId,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt
         };
@@ -148,7 +149,7 @@ router.put('/users/:userId', async (req, res, next) => {
         } else if(req.body.username.trim() === '') {
             res.status(400).json({ error: 'username must not be empty' });
             return;
-        } else if (await getUserByUsername(req.body.username)) {
+        } else if (await getUserByUsername(req.body.username) && req.body.username !== user.username) {
             res.status(400).json({ error: 'username already exists' });
             return;
         }
@@ -166,14 +167,17 @@ router.put('/users/:userId', async (req, res, next) => {
             res.status(400).json({ error: 'password must not be empty' });
             return;
         }
-        const existingUser = await getUserByUsername(req.body.username);
-        if (existingUser && existingUser.userId !== req.params.userId) {
-            res.status(400).json({ error: 'username already exists' });
-            return;
-        }
-
-        const updatedUser = await updateUser(req.params.userId, req.body.username, req.body.password);
-        res.status(200).json(updatedUser);
+        const saltRounds = 10;
+        bcrypt.genSalt(saltRounds, function(_err: any, salt: any) {
+            bcrypt.hash(req.body.password, salt, async function(_err: any, hash: any) {
+                const user = await updateUser(
+                    req.params.userId,
+                    req.body.username,
+                    hash
+                );
+                res.status(200).json(user);
+            });
+        });
     } catch (err) {
         next(err);
     }

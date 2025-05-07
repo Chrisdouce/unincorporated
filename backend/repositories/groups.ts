@@ -1,3 +1,4 @@
+import { sql } from "kysely";
 import { db } from "../db/db.js";
 
 export type Group = {
@@ -7,6 +8,8 @@ export type Group = {
     size: number;
     description: string;
     type: string;
+    size: number;
+    capacity: number;
     createdAt: Date;
     updatedAt: Date;
 };
@@ -86,10 +89,12 @@ export async function createGroup(group: Omit<Group, 'groupId' | 'createdAt' | '
                 size: group.size,
                 description: group.description,
                 type: group.type,
+                size: group.size,
+                capacity: group.capacity,
                 createdAt: new Date(),
                 updatedAt: new Date()
             })
-            .returning(['groupId', 'leaderId', 'name', 'description', 'type', 'createdAt', 'updatedAt'])
+            .returning(['groupId', 'leaderId', 'name', 'description', 'type', 'size', 'capacity', 'createdAt', 'updatedAt'])
             .executeTakeFirstOrThrow();
 
         await trx
@@ -123,6 +128,7 @@ export async function updateGroup(group: Omit<Group, 'createdAt' | 'updatedAt'>)
                 name: group.name,
                 description: group.description,
                 type: group.type,
+                capacity: group.capacity,
                 updatedAt: new Date()
             })
             .where('groupId', '=', group.groupId)
@@ -154,6 +160,12 @@ export async function addUserToGroup(userId: string, groupId: string): Promise<s
             })
             .where('userId', '=', userId)
             .execute();
+
+        await trx
+            .updateTable('group')
+            .set({ size: sql`size + 1` })
+            .where('groupId', '=', groupId)
+            .execute();
     });
     return groupId;
 }
@@ -166,6 +178,12 @@ export async function removeUserFromGroup(userId: string, groupId: string): Prom
                 groupId: null as unknown as string
             })
             .where('userId', '=', userId)
+            .where('groupId', '=', groupId)
+            .execute();
+        
+        await trx
+            .updateTable('group')
+            .set({ size: sql`size - 1` })
             .where('groupId', '=', groupId)
             .execute();
     });

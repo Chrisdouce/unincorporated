@@ -11,6 +11,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     await db.schema
         .alterTable("group")
         .addColumn("size", "integer", col => col.notNull().defaultTo(2))
+        .addColumn('capacity', 'integer', col => col.notNull())
         .execute();
 }
 
@@ -18,6 +19,7 @@ export async function down(db: Kysely<any>): Promise<void> {
     await db.schema
         .alterTable("group")
         .dropColumn("size")
+        .dropColumn("capacity")
         .execute();
     await db.schema
         .dropTable("settings")
