@@ -4,6 +4,7 @@ export type Post = {
     postId: string;
     ownerId: string;
     parentId: string | null;
+    title: string | null;
     content: string;
     createdAt: Date;
     updatedAt: Date;
@@ -15,11 +16,24 @@ export type Reaction = {
     type: string;
 };
 
-export async function getAllPosts(): Promise<Post[]> {
-    return await db
+export async function getAllPosts(): Promise<(Post & { username: string })[]> {
+    const posts = await db
         .selectFrom('post')
         .selectAll()
         .execute();
+
+    const users = await db
+        .selectFrom('user')
+        .selectAll()
+        .execute();
+
+    return posts.map(post => {
+        const user = users.find(user => user.userId === post.ownerId);
+        return {
+            ...post,
+            username: user ? user.username : 'Unknown',
+        };
+    });
 }
 
 export async function getAllPostsByUserId(userId: string): Promise<Post[]> {
@@ -73,27 +87,29 @@ export async function createPost(newPost: Omit<Post, 'postId' | 'createdAt' | 'u
             .values({ 
                 ownerId: newPost.ownerId,
                 parentId: newPost.parentId || null as any,
+                title: newPost.title || "New Title",
                 content: newPost.content,
                 createdAt: new Date(),
                 updatedAt: new Date()
             })
-            .returning(['postId', 'ownerId', 'parentId', 'content', 'createdAt'])
+            .returning(['postId', 'ownerId', 'parentId', 'title', 'content', 'createdAt'])
             .executeTakeFirstOrThrow();
         return createdPost;
     });
     return createdPost;
 }
 
-export async function updatePost(postId: string, newContent: string) {
+export async function updatePost(postId: string, newContent: string, newTitle: string): Promise<Post> {
     return await db.transaction().execute(async (trx) => {
         return await trx
             .updateTable('post')
             .set({
+                title: newTitle,
                 content: newContent,
                 updatedAt: new Date()
             })
             .where('postId', '=', postId)
-            .returning(['postId', 'ownerId', 'parentId', 'content'])
+            .returning(['postId', 'ownerId', 'parentId', 'content', 'title', 'createdAt', 'updatedAt'])
             .executeTakeFirstOrThrow();
     });
 }
@@ -110,7 +126,7 @@ export async function deletePost(postId: string): Promise<Post | null> {
         const post = await trx
             .deleteFrom('post')
             .where('postId', '=', postId)
-            .returning(['postId', 'ownerId', 'parentId', 'content', 'createdAt', 'updatedAt'])
+            .returning(['postId', 'ownerId', 'parentId', 'title', 'content', 'createdAt', 'updatedAt'])
             .executeTakeFirst();
 
         return post || null;
@@ -177,4 +193,24 @@ export async function deleteReactionOnPost(userId: string, postId: string): Prom
             .executeTakeFirstOrThrow();
     });
     return deletedReaction;
+}
+
+export async function checkIfUserAlreadyReacted(userId: string, postId: string): Promise<boolean> {
+    const reaction = await db.transaction().execute(async (trx) => {
+        return await trx
+            .selectFrom('reaction')
+            .selectAll()
+            .where('postId', '=', postId)
+            .where('userId', '=', userId)
+            .execute();
+    });
+    return reaction ? reaction.length > 0 : false;
+}
+
+export async function getAllReactionsByPostId(postId: string): Promise<Reaction[]> {
+    return await db
+        .selectFrom('reaction')
+        .selectAll()
+        .where('postId', '=', postId)
+        .execute();
 }

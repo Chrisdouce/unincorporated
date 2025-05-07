@@ -50,6 +50,7 @@ export type PostTable = {
     postId: Generated<string>;
     ownerId: ColumnType<string, string, undefined>;
     parentId: ColumnType<string, string, undefined>;
+    title: string | null;
     content: string;
     createdAt: Date;
     updatedAt: Date;

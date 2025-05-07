@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import 'dotenv/config';
 import { deleteUser, getUserByUsername } from "../repositories/users.js";
 import { deleteAllPostsByUserId } from "../repositories/posts.js";
+import { title } from "node:process";
 
 const request = supertest(app);
 
@@ -37,7 +38,6 @@ describe('Post routes', () => {
 
         // Delete all posts by the test user
         await deleteAllPostsByUserId(user.userId);
-        
 
     });
 
@@ -49,6 +49,7 @@ describe('Post routes', () => {
 
     test('POST /users/:userId/posts returns 201 for valid post', async () => {
         const res = await request.post(`/api/v1/users/${user.userId}/posts`).set('Authorization', `Bearer ${token}`).send({
+            title: 'Test Post',
             content: 'This is a test post'
         });
         postId = res.body.postId;
@@ -103,7 +104,7 @@ describe('Post routes', () => {
     test('POST /users/:userId/posts returns 400 for bad data', async () => {
         let res = await request.post(`/api/v1/users/${user.userId}/posts`).set('Authorization', `Bearer ${token}`).send({});
         assert.strictEqual(res.status, 400);
-        assert.strictEqual(res.body.error, 'Content is required');
+        assert.strictEqual(res.body.error, 'Title is required');
 
         res = await request.post(`/api/v1/users/invalidUserId/posts`).set('Authorization', `Bearer ${token}`).send({
             content: 'This is a test post'
@@ -112,6 +113,7 @@ describe('Post routes', () => {
         assert.strictEqual(res.body.error, 'Invalid UUID');
 
         res = await request.post(`/api/v1/users/${user.userId}/posts`).set('Authorization', `Bearer ${token}`).send({
+            title: 'Test Post',
             content: ''
         });
         assert.strictEqual(res.status, 400);
@@ -180,6 +182,7 @@ describe('Reaction routes', () => {
         token = res.body.token;
 
         res = await request.post(`/api/v1/users/${user.userId}/posts`).set('Authorization', `Bearer ${token}`).send({
+            title: 'Test Post',
             content: 'This is a test post'
         });
         postId = res.body.postId;
@@ -315,6 +318,7 @@ describe('Reaction routes', () => {
 
     test('DELETE /users/:userId/posts/:postId returns 200 for deleted post, and 404 for trying to delete reactions', async () => {
         let res = await request.post(`/api/v1/users/${user.userId}/posts`).set('Authorization', `Bearer ${token}`).send({
+            title: 'New Test Post',
             content: 'This is a new test post'
         });
         const newPostId = res.body.postId;

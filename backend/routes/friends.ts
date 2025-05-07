@@ -63,7 +63,6 @@ router.get('/users/:userId/requests', verifyToken, async (req, res, next) => {
         res.status(404).json({ error: 'User not found' });
         return;
     }
-    
     const friends = await getAllPendingFriendsForUser(user.userId)
     res.status(200).json(friends);
 });
