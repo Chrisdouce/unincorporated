@@ -462,7 +462,7 @@ const SkyblockProfile = ({ uuid }: { uuid: string }) => {
               <Typography variant="h6" gutterBottom>
               Normal Dungeons Completions
               </Typography>
-              <List>
+              <List sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)'}}>
                 {Object.entries(normalDungeons).map(([tier, count]) => (
                   <ListItem key={tier} disableGutters>
                     <ListItemText primary={`Tier ${tier}`} secondary={`Completions: ${count}`} />
@@ -476,7 +476,7 @@ const SkyblockProfile = ({ uuid }: { uuid: string }) => {
               <Typography variant="h6" gutterBottom>
                Master Mode Completions
               </Typography>
-              <List>
+              <List sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)'}}>
                 {Object.entries(masterModeDungeons).map(([tier, count]) => (
                   <ListItem key={tier} disableGutters>
                     <ListItemText primary={`Tier ${tier}`} secondary={`Completions: ${count}`} />
