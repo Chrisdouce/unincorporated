@@ -231,7 +231,7 @@ export default function Guide(): JSX.Element {
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Box display="flex" alignItems="center">
             <img
-              src={`https://crafatar.com/avatars/${post.author.minecraftUUID}?size=64&default=MHF_Steve&overlay`}
+              src={post.author.minecraftUUID ? `https://crafatar.com/avatars/${post.author.minecraftUUID}?size=64&default=MHF_Steve&overlay` : 'https://crafatar.com/avatars/579ad0c0-c7ef-4004-8c09-e1da6ec7402c?size=64&default=MHF_Steve&overlay'}
               alt="User Avatar"
               style={{
                 marginRight: 16,

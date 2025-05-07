@@ -33,7 +33,7 @@ function App(): JSX.Element {
     }
 
     async function fetchSettings() {
-      if (!token) return logout();
+      if (!token) return;
       try {
           const decoded = JSON.parse(atob(token.split('.')[1]));
           const userId = decoded.userId;
