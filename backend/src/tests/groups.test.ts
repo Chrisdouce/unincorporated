@@ -3,7 +3,7 @@ import supertest from 'supertest';
 import { app } from "../index.js";
 import assert from "node:assert/strict";
 import 'dotenv/config';
-import { getAllUsers, getUserByUsername } from "../repositories/users.js";
+import { getAllUsers, getUserByUsername } from "../repositories/users";
 
 const request = supertest(app);
 
