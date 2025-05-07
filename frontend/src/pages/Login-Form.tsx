@@ -12,6 +12,7 @@ import {
     Fade
 } from '@mui/material';
 import LoginIcon from '@mui/icons-material/Login';
+import { Link as RouterLink } from 'react-router-dom';
 import { JSX, useState } from 'react';
 
 type Props = {
@@ -164,13 +165,10 @@ export default function LoginPage({onLogin}: Props): JSX.Element {
                             <Typography variant="body2" sx={{ textAlign: 'center' }}>
                                 {"Don't have an account? "}
                                 <Link 
-                                    href="/signup" 
-                                    variant="body2" 
-                                    sx={{ 
-                                        textDecoration: 'none', 
-                                        '&:hover': { textDecoration: 'underline' } 
-                                    }}
-                                >
+                                    component={RouterLink}
+                                    to="/signup"
+                                    variant="body2"
+                                    >
                                     Sign Up
                                 </Link>
                             </Typography>

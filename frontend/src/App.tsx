@@ -15,6 +15,7 @@ import PersonalPageWrapper from "./components/Personal-Page-Wrapper";
 import SettingsPage from './components/Settings';
 import LoginForm from "./pages/Login-Form";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import SignupPage from "./pages/Signup-Form";
 import { useUser } from "./context/UserContext";
 import SignupForm from "./pages/Signup-Form";
 

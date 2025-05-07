@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import { useNavigate } from 'react-router';
 
 export default function SignUpPage() {
@@ -73,7 +74,7 @@ export default function SignUpPage() {
       setFailedSignupMessage(data.error);
       return;
     } else {
-      navigate('/login', {
+      navigate('/', {
         state: { 
           newlyRegistered: true,
           registeredUsername: username 
@@ -189,14 +190,15 @@ export default function SignUpPage() {
               <Typography variant="body2" sx={{ textAlign: 'center' }}>
                 {"Already have an account? "}
                 <Link 
-                    href="/login" 
-                    variant="body2" 
-                    sx={{ 
-                        textDecoration: 'none', 
-                        '&:hover': { textDecoration: 'underline' } 
-                    }}
+                  component={RouterLink}
+                  to="/"
+                  variant="body2"
+                  sx={{ 
+                      textDecoration: 'none', 
+                      '&:hover': { textDecoration: 'underline' } 
+                  }}
                 >
-                    Sign in
+                  Sign in
                 </Link>
               </Typography>
             </Box>
