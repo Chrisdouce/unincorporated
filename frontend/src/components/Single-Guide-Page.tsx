@@ -131,7 +131,7 @@ export default function Guide(): JSX.Element {
       data.username = dataUser.username;
       const userId = JSON.parse(atob(token.split('.')[1])).userId;
       const reactionsRes = await fetch(
-        `http://localhost:3000/api/v1/users/${userId}/posts/${postId}/reactions`,
+        `${baseUrl}/api/v1/users/${userId}/posts/${postId}/reactions`,
         {
           headers: {
             'Content-Type': 'application/json',
@@ -182,7 +182,7 @@ export default function Guide(): JSX.Element {
 
       if (isSameReaction) {
         res = await fetch(
-          `http://localhost:3000/api/v1/users/${userId}/posts/${post.id}/reactions`,
+          `${baseUrl}/api/v1/users/${userId}/posts/${post.id}/reactions`,
           {
             method: 'DELETE',
             headers: {
@@ -199,7 +199,7 @@ export default function Guide(): JSX.Element {
         const method = userReaction ? 'PUT' : 'POST';
 
         res = await fetch(
-          `http://localhost:3000/api/v1/users/${userId}/posts/${post.id}/reactions`,
+          `${baseUrl}/api/v1/users/${userId}/posts/${post.id}/reactions`,
           {
             method,
             headers: {

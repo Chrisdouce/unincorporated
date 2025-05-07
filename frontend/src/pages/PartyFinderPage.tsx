@@ -121,7 +121,7 @@ function PartyFinderPage(): JSX.Element {
 
   //im sorry it sucks
   async function fetchAndMergeUsers( groupId: string) {
-    const userRes = await fetch('http://localhost:3000/api/v1/users', {
+    const userRes = await fetch(`${baseUrl}/api/v1/users`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -159,7 +159,7 @@ function PartyFinderPage(): JSX.Element {
 
   async function fetchGroups() {
     try {
-      const groupRes = await fetch('http://localhost:3000/api/v1/groups', {
+      const groupRes = await fetch(`${baseUrl}/api/v1/groups`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -170,7 +170,7 @@ function PartyFinderPage(): JSX.Element {
       }
       if (!groupRes.ok) throw new Error("Failed to fetch groups");
       const groups = await groupRes.json();
-      const userRes = await fetch('http://localhost:3000/api/v1/users', {
+      const userRes = await fetch(`${baseUrl}/api/v1/users`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
