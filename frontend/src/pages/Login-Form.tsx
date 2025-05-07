@@ -14,6 +14,7 @@ import {
 import LoginIcon from '@mui/icons-material/Login';
 import { Link as RouterLink } from 'react-router-dom';
 import { JSX, useState } from 'react';
+import { baseUrl } from '../services/BaseUrl';
 
 type Props = {
     onLogin: (token: string, rememberMe: boolean) => void;
@@ -45,7 +46,7 @@ export default function LoginPage({onLogin}: Props): JSX.Element {
         }
         let res = null;
         try {
-            res = await fetch('http://localhost:3000/api/v1/users/login', {
+            res = await fetch(`${baseUrl}/api/v1/users/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password }),

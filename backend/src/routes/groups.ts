@@ -1,9 +1,9 @@
 import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
-import { getUserById } from '../repositories/users';
-import { createGroup, deleteGroup, getGroupByLeaderId, getGroupByGroupId, updateGroup, getAllGroupsByName, getAllGroups, getGroupByUserId, removeUserFromGroup, addUserToGroup } from '../repositories/groups';
-import { getAllGroupsByType } from '../repositories/groups';
+import { getUserById } from '../repositories/users.js';
+import { createGroup, deleteGroup, getGroupByLeaderId, getGroupByGroupId, updateGroup, getAllGroupsByName, getAllGroups, getGroupByUserId, removeUserFromGroup, addUserToGroup } from '../repositories/groups.js';
+import { getAllGroupsByType } from '../repositories/groups.js';
 
 const router = express.Router();
 const allowedTypes = ['Diana', 'Kuudra', 'Dungeons', 'Fishing', 'Other'];

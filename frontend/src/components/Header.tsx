@@ -39,7 +39,7 @@ export default function Header({ isLoggedIn, onLogout }: Props) {
     setTabValue(currentTab === -1 ? 0 : currentTab);
   }, [currentTab]);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
     navigate(tabRoutes[newValue]);
   };

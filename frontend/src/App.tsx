@@ -23,7 +23,7 @@ function App(): JSX.Element {
   const { token, isLoading, login, logout } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
 
   useEffect(() => {
     const publicRoutes = ["/", "/signup"];

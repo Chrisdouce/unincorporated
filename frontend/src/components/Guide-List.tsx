@@ -15,9 +15,10 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEffect, useState } from "react";
 import { useUser } from "../context/UserContext";
 import ReactMarkdown from "react-markdown";
+import { baseUrl } from "../services/BaseUrl";
 
 type ReactionType = 'like' | 'dislike' ;
 
@@ -49,9 +50,9 @@ export default function Guide() {
       const data = await res.json();
       // Fetch reactions for each post and append them
       const postsWithReactions = await Promise.all(
-        data.map(async (post) => {
+        data.map(async (post: { postId: any; }) => {
           try {
-            const reactionRes = await fetch(`http://localhost:3000/api/v1/posts/${post.postId}/reactions`, {
+            const reactionRes = await fetch(`${baseUrl}/api/v1/posts/${post.postId}/reactions`, {
               headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`,
@@ -98,7 +99,7 @@ export default function Guide() {
 
       const method = isEditing ? 'PUT' : 'POST';
 
-      const res = await fetch(`http://localhost:3000${route}`, {
+      const res = await fetch(`${baseUrl}${route}`, {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -143,7 +144,7 @@ export default function Guide() {
 
     try {
       const userId = token ? JSON.parse(atob(token.split('.')[1])).userId : null;
-      const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/posts/${postId}`, {
+      const res = await fetch(`${baseUrl}/api/v1/users/${userId}/posts/${postId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -180,16 +181,25 @@ export default function Guide() {
         </Button>
 
         <Box sx={{ flexGrow: 1 }}>
-          <TextField fullWidth label="Search for Guides" variant="outlined" />
+        <TextField
+          fullWidth
+          label="Search for Guides"
+          variant="outlined"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
         </Box>
-        <Button variant="outlined">Filter</Button>
       </Box>
     </Box>
+    <Divider sx={{ marginY: 2 }} />
     <Box margin="auto" padding={2}>
       
-      <Divider sx={{ marginY: 2 }} />
       <List>
-        {displayedPosts.map((post) => (
+      {displayedPosts.map((post) => {
+        const currentUserId = token ? JSON.parse(atob(token.split('.')[1])).userId : null;
+        const isOwner = post.ownerId === currentUserId;
+
+        return (
           <ListItem
             key={post.postId}
             sx={{
@@ -201,60 +211,87 @@ export default function Guide() {
               marginBottom: 2,
             }}
           >
-            <Typography
-              variant="h6"
-              component="a"
-              href={`/guides/${post.postId}`}
-              sx={{
-                textDecoration: "none",
-                color: "primary.main",
-                '&:hover': { textDecoration: "underline" },
-              }}
-            >
-              {post.title}
-            </Typography>
+        <Typography
+          variant="h6"
+          component="a"
+          href={`/guides/${post.postId}`}
+          sx={{
+            textDecoration: "none",
+            color: "primary.main",
+            '&:hover': { textDecoration: "underline" },
+          }}
+        >
+          {post.title}
+        </Typography>
 
-            <Typography
-              variant="body1"
-              sx={{
-                whiteSpace: "pre-wrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                display: "-webkit-box",
-                WebkitLineClamp: 5, // show only 5 lines
-                WebkitBoxOrient: "vertical",
-              }}
-            >
-              {post.content}
-            </Typography>
+        <Typography
+          variant="body1"
+          sx={{
+            whiteSpace: "pre-wrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            display: "-webkit-box",
+            WebkitLineClamp: 5,
+            WebkitBoxOrient: "vertical",
+          }}
+        >
+          {post.content}
+        </Typography>
 
-            <Typography variant="caption" color="textSecondary">
-              Created at: {new Date(post.createdAt).toLocaleString()}
-            </Typography>
+        <Typography variant="caption" color="textSecondary">
+          Created at: {new Date(post.createdAt).toLocaleString()}
+        </Typography>
 
-            <Typography
-              variant="caption"
-              color="primary"
-              component="a"
-              href={`/users/${post.ownerId}`}
-              sx={{ textDecoration: "none", "&:hover": { textDecoration: "underline" }, mt: 0.5 }}
-            >
-              @{post.username || "Unknown"}
-            </Typography>
+        <Typography
+          variant="caption"
+          color="primary"
+          component="a"
+          href={`/users/${post.ownerId}`}
+          sx={{ textDecoration: "none", "&:hover": { textDecoration: "underline" }, mt: 0.5 }}
+        >
+          @{post.username || "Unknown"}
+        </Typography>
 
-            {post.reactions && post.reactions.length > 0 && (
-              <Stack direction="row" spacing={1} mt={1}>
-                {post.reactions.map((reaction) => (
-                  <Typography key={reaction.type} variant="caption" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                    {reaction.type === "like" ? "👍" : "👎"} {reaction.count}
-                  </Typography>
-                ))}
+      {post.reactions && post.reactions.length > 0 && (
+        <Stack direction="row" spacing={1} mt={1}>
+          {post.reactions.map((reaction: { type: Key | null | undefined; count: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; }) => (
+            <Typography key={reaction.type} variant="caption" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              {reaction.type === "like" ? "👍" : "👎"} {reaction.count}
+            </Typography>
+          ))}
+        </Stack>
+      )}
+
+      {isOwner && (
+        <Stack direction="row" spacing={1} mt={2}>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => {
+              setOpen(true);
+              setIsEditing(true);
+              setEditingPostId(post.postId);
+              setNewTitle(post.title);
+              setNewContent(post.content);
+            }}
+          >
+            Edit
+          </Button>
+          <Button
+            variant="outlined"
+            color="error"
+            size="small"
+            onClick={() => handleDeletePost(post.postId)}
+          >
+            Delete
+          </Button>
               </Stack>
             )}
           </ListItem>
-        ))}
+        );
+      })}
       </List>
-
+        
 
       <Dialog
         open={open}
@@ -342,8 +379,13 @@ export default function Guide() {
           </Button>
         </DialogActions>
       </Dialog>
-
+      {displayedPosts.length === 0 && (
+          <Typography align="center">
+              No guides found :(
+          </Typography>
+      )}
     </Box>
+    
     </>
   );
 }

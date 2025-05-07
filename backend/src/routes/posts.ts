@@ -1,8 +1,8 @@
 import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
-import { checkIfUserAlreadyReacted, createPost, createReactionOnPost, deletePost, deleteReactionOnPost, getAllPosts, getAllPostsByUserId, getPostByPostId, getUserReactionsOnPost, updatePost, updateReactionOnPost, getAllReactionsByPostId } from '../repositories/posts';
-import { getUserById } from '../repositories/users';
+import { checkIfUserAlreadyReacted, createPost, createReactionOnPost, deletePost, deleteReactionOnPost, getAllPosts, getAllPostsByUserId, getPostByPostId, getUserReactionsOnPost, updatePost, updateReactionOnPost, getAllReactionsByPostId } from '../repositories/posts.js';
+import { getUserById } from '../repositories/users.js';
 
 const router = express.Router();
 

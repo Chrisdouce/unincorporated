@@ -1,8 +1,13 @@
-import React, { JSX, use, useEffect, useState } from 'react';
+import React, { JSX, useEffect, useState } from 'react';
 import {
-  Box, AppBar, Toolbar, Typography, Tabs, Tab, Button, IconButton,
-  Menu, MenuItem, TextField, Paper,
-  Tooltip, Icon
+  Box, 
+  Typography, 
+  Button,
+  MenuItem, 
+  TextField, 
+  Paper,
+  Tooltip,
+  Divider
 } from '@mui/material';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -10,13 +15,18 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Select from '@mui/material/Select';
 import { useUser } from "../context/UserContext";
+import { useNavigate } from 'react-router-dom';
+import { baseUrl } from '../services/BaseUrl';
 
 interface CardData {
+  members: any;
   name: string;
   size: number;
   type: string;
   capacity: number;
   description: string;
+  groupId: string;
+  leaderId: string;
 }
 
 function PartyFinderPage(): JSX.Element {
@@ -31,9 +41,10 @@ function PartyFinderPage(): JSX.Element {
   const [userGroup, setUserGroup] = useState<{ groupId: string } | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editGroup, setEditGroup] = useState<CardData | null>(null);
-  const { token, isLoading, login, logout } = useUser();
-  const [exampleUsers, setExampleUsers] = useState<string[]>([]);
+  const { token, isLoading, logout } = useUser();
   const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
 
   const partySizeOptions: Record<string, { default: number; min: number; max: number }> = {
@@ -44,52 +55,58 @@ function PartyFinderPage(): JSX.Element {
     Other: { default: 6, min: 2, max: 10 },
   };
 
-  useEffect(() => {
-    async function fetchUsers() {
+  const handleCopy = async (groupId: string) => {
     try {
-        if (isLoading) return;
-        if (!token) {
-            logout();
-            return;
-        }
-        const decodedToken = JSON.parse(atob(token.split('.')[1]));
-        const userId = decodedToken.userId;
-        const users = await fetch(`http://localhost:3000/api/v1/users`, {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${token}` },
-        });
-        const data = await users.json();
-        const userIds = data.map((user: { userId: string }) => user.userId);
-        setExampleUsers(userIds);
-        setCurrentUser(userId);
-    } catch (error) {
-        console.error('Error fetching settings:', error);
-    }
-  }
-  fetchUsers();
-  fetchGroups();
-}, [token, logout]);
-
-useEffect(() => {
-  if (!currentUser) return;
-
-  const fetchUserGroup = async () => {
-    try {
-      const res = await fetch(`http://localhost:3000/api/v1/users/${currentUser}/group`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const group = await res.json();
-        setUserGroup(group);
-      } else if (res.status === 404) {
-        setUserGroup(null);
-      }
+      const usersInGroup = await fetchAndMergeUsers(groupId);
+      const usernames = usersInGroup.map((user: { ign: string }) => user.ign);
+      const command = `/p invite ${usernames.join(' ')}`;
+      await navigator.clipboard.writeText(command);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error("Failed to fetch user group:", err);
+      console.error("Failed to copy invite command:", err);
     }
   };
-  fetchUserGroup();
-}, [currentUser, token]);
+
+  useEffect(() => {
+      async function fetchUsers() {
+      try {
+          if (isLoading) return;
+          if (!token) {
+              logout();
+              return;
+          }
+          const decodedToken = JSON.parse(atob(token.split('.')[1]));
+          const userId = decodedToken.userId;
+          setCurrentUser(userId);
+      } catch (error) {
+          console.error('Error fetching settings:', error);
+      }
+    }
+    fetchUsers();
+    fetchGroups();
+  }, [token, logout]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const fetchUserGroup = async () => {
+      try {
+        const res = await fetch(`${baseUrl}/api/v1/users/${currentUser}/group`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const group = await res.json();
+          setUserGroup(group);
+        } else if (res.status === 404) {
+          setUserGroup(null);
+        }
+      } catch (err) {
+        console.error("Failed to fetch user group:", err);
+      }
+    };
+    fetchUserGroup();
+  }, [currentUser, token]);
   const [partySize, setPartySize] = useState(partySizeOptions['Diana'].default);
 
   const handleDeleteClick = (groupName: string) => {
@@ -102,19 +119,89 @@ useEffect(() => {
     setEditDialogOpen(true);
   };
 
+  //im sorry it sucks
+  async function fetchAndMergeUsers( groupId: string) {
+    const userRes = await fetch('http://localhost:3000/api/v1/users', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  
+    const settingsRes = await fetch(`${baseUrl}/api/v1/settings`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  
+    if (settingsRes.status === 401) {
+      logout();
+      return;
+    }
+  
+    if (!userRes.ok) throw new Error("Failed to fetch users");
+  
+    const users = await userRes.json();
+    const settings = await settingsRes.json();
+  
+    // Filter users by groupId and map settings
+    const mergedUsers = users
+      .filter((user: any) => user.groupId === groupId)
+      .map((user: any) => {
+        const userSetting = settings.find((setting: any) => setting.userId === user.userId);
+        if (userSetting) {
+          user.ign = userSetting.ign;
+        }
+        return user;
+      });
+  
+    return mergedUsers;
+  }
+
   async function fetchGroups() {
     try {
-      const res = await fetch('http://localhost:3000/api/v1/groups', {
+      const groupRes = await fetch('http://localhost:3000/api/v1/groups', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      if (res.ok) {
-        const data = await res.json();
-        setCards(data);
-      } else if (res.status === 401) {
+      if (groupRes.status === 401) {
         logout();
+        return;
       }
+      if (!groupRes.ok) throw new Error("Failed to fetch groups");
+      const groups = await groupRes.json();
+      const userRes = await fetch('http://localhost:3000/api/v1/users', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const settingsRes = await fetch(`${baseUrl}/api/v1/settings`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (settingsRes.status === 401) {
+        logout();
+        return;
+      }
+
+      if (!userRes.ok) throw new Error("Failed to fetch users");
+      const users = await userRes.json();
+      const settings = await settingsRes.json();
+      users.map((user: any) => {
+        const userSetting = settings.find((setting: any) => setting.userId === user.userId);
+        if (userSetting) {
+          user.minecraftUUID = userSetting.minecraftUUID;
+        }
+        return user;
+      });
+      const groupsWithMembers = groups.map((group: any) => ({
+        ...group,
+        members: users.filter((user: any) => user.groupId === group.groupId),
+      }));
+      setCards(groupsWithMembers);
+  
     } catch (err) {
       console.error("Failed to fetch groups:", err);
     }
@@ -126,10 +213,13 @@ useEffect(() => {
       type: newType,
       size: 1,
       capacity: partySize,
+      groupId: "",
+      leaderId: currentUser || "",
       description: newDescription || 'No description',
+      members: [],
     };
 
-    const res = await fetch(`http://localhost:3000/api/v1/users/${currentUser}/group`, {
+    const res = await fetch(`${baseUrl}/api/v1/users/${currentUser}/group`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -145,9 +235,9 @@ useEffect(() => {
     await fetchUserGroup();
   };
 
-  const handleJoin = async (index: number, groupId: string) => {
+  const handleJoin = async (_index: number, groupId: string) => {
     try {
-      const res = await fetch(`http://localhost:3000/api/v1/users/${currentUser}/group/${groupId}`, {
+      const res = await fetch(`${baseUrl}/api/v1/users/${currentUser}/group/${groupId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -173,7 +263,7 @@ useEffect(() => {
 
   const fetchUserGroup = async () => {
     try {
-      const res = await fetch(`http://localhost:3000/api/v1/users/${currentUser}/group`, {
+      const res = await fetch(`${baseUrl}/api/v1/users/${currentUser}/group`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -198,7 +288,7 @@ useEffect(() => {
     if (!groupToLeave) return;
   
     try {
-      const res = await fetch(`http://localhost:3000/api/v1/users/${currentUser}/group/${groupToLeave}`, {
+      const res = await fetch(`${baseUrl}/api/v1/users/${currentUser}/group/${groupToLeave}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -229,7 +319,7 @@ useEffect(() => {
     if (!groupToDelete) return;
   
     try {
-      const res = await fetch(`http://localhost:3000/api/v1/users/${currentUser}/group`, {
+      const res = await fetch(`${baseUrl}/api/v1/users/${currentUser}/group`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -264,7 +354,7 @@ useEffect(() => {
     }
   
     try {
-      const res = await fetch(`http://localhost:3000/api/v1/users/${currentUser}/group`, {
+      const res = await fetch(`${baseUrl}/api/v1/users/${currentUser}/group`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -298,6 +388,7 @@ useEffect(() => {
 //   }
 
   return (
+    <>
     <Box>
       <Paper sx={{ margin: 2, padding: 5 }}>
         <Typography variant="h5" align="center">
@@ -311,7 +402,7 @@ useEffect(() => {
           <Box sx={{ flexGrow: 1 }}>
           <TextField
             fullWidth
-            label="Search"
+            label="Search for Party"
             variant="outlined"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -346,21 +437,43 @@ useEffect(() => {
           </Box>
 
           <Box sx={{ order: 2, gridColumn: 'span 1', display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
-            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-              {card.size}/{card.capacity}
-            </Typography>
+            <Tooltip title={copied ? 'Copied!' : 'Click to copy invite command'}>
+              <Typography
+                variant="h6"
+                sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                onClick={() => handleCopy(card.groupId)}
+              >
+                {card.size}/{card.capacity}
+              </Typography>
+            </Tooltip>
           </Box>
-
           <Box sx={{ order: 3, gridColumn: 'span 3', display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
             <Box sx={{ display: 'flex', gap: 1 }}>
-              {[...Array(card.capacity)].map((_, i) => (
+              {card.members.map((member: { username: string | number | bigint | boolean | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | Promise<string | number | bigint | boolean | React.ReactPortal | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined> | null | undefined; userId: any; minecraftUUID: any; }, i: React.Key | null | undefined) => (
+                <Tooltip key={i} title={member.username} onClick={() => navigate(`/users/${member.userId}`)}>
+                    <Box
+                      component="img"
+                      src={`https://crafatar.com/avatars/${member.minecraftUUID}?size=35&default=MHF_Steve&overlay`}
+                      alt={String(member.username)}
+                      sx={{
+                        width: 35,
+                        height: 35,
+                        borderRadius: 1,
+                        border: '2px solid',
+                        borderColor: 'yellow',
+                      }}
+                    />
+                </Tooltip>
+              ))}
+              {/* Fill empty slots with gray boxes */}
+              {[...Array(Math.max(0, card.capacity - card.members.length))].map((_, i) => (
                 <Box
-                  key={i}
+                  key={`empty-${i}`}
                   sx={{
                     width: 35,
                     height: 35,
                     border: '2px solid',
-                    borderColor: i < card.size ? 'yellow' : 'gray',
+                    borderColor: 'gray',
                     borderRadius: 1,
                   }}
                 />
@@ -413,6 +526,7 @@ useEffect(() => {
         </Box>
         ))}
       </Box>
+      <Divider sx={{ marginY: 2 }} />
       
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
         <form onSubmit={(e) => { e.preventDefault(); handleCreateCard(); }}>
@@ -566,6 +680,13 @@ useEffect(() => {
         </form>
       </Dialog>
     </Box>
+
+    {cards.length === 0 && (
+      <Typography align="center" sx={{ paddingTop: 4 }}>
+        No parties found :(
+      </Typography>
+    )}
+    </>
   );
 }
 

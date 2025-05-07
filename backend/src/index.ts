@@ -6,7 +6,7 @@ import usersRouter from './routes/users.js';
 import postsRouter from './routes/posts.js';
 import groupsRouter from './routes/groups.js';
 import friendsRouter from './routes/friends.js';
-import skyblockRouter from './routes/skyblock';
+import skyblockRouter from './routes/skyblock.js';
 
 await migrateToLatest();
 
