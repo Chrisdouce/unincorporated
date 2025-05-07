@@ -389,9 +389,6 @@ const SkyblockProfile = ({ uuid }: { uuid: string }) => {
           <Typography variant="body1" gutterBottom>
             Coins in Purse: {coinPurse?.toLocaleString() ?? 'N/A'}
           </Typography>
-          <Typography variant="body1" gutterBottom>
-            Catacombs Level: { calcDungeonsLevel(dungeonsLevel) ?? 'N/A'}
-          </Typography>
         </Box>
         <Box display="grid" gridTemplateColumns="repeat(2, 1fr)" gap={2} mt={3}>
           <Box>{renderSkillXP(member.player_data.experience)}</Box>
