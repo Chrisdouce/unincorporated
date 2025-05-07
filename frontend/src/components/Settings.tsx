@@ -154,7 +154,7 @@ export default function SettingsPage() {
                 <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <FormControlLabel
                         control={<Switch checked={darkMode} onChange={e => setDarkMode(e.target.checked)} />}
-                        label="Dark Mode"
+                        label={darkMode ? "Dark Mode" : "Light Mode"}
                     />
                     <TextField
                         label="In-Game Name (IGN)"

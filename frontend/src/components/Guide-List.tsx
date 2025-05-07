@@ -67,7 +67,6 @@ export default function Guide() {
             reactionData.forEach(({ type }) => {
               if (type in counts) counts[type]++;
             });
-            console.log(counts)
             return {
               ...post,
               reactions: Object.entries(counts)
