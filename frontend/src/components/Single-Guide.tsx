@@ -6,6 +6,8 @@ import {
   CircularProgress
 } from '@mui/material';
 import { useUser } from '../context/UserContext';
+import ReactMarkdown from 'react-markdown';
+import { useParams } from 'react-router';
 
 interface Author {
   id: string;
@@ -19,7 +21,8 @@ interface Post {
   author: Author;
 }
 
-export default function SinglePost({ openedPostId }: { openedPostId: string }): JSX.Element {
+export default function Guide(): JSX.Element {
+  const { title } = useParams<{ title: string }>();
   const { token, logout } = useUser();
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -32,27 +35,35 @@ export default function SinglePost({ openedPostId }: { openedPostId: string }): 
           logout();
           return;
         }
-        const res = await fetch(`http://localhost:3000/api/v1/posts/${openedPostId}`, {
+        const res = await fetch(`http://localhost:3000/api/v1/posts`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
           },
         });
-        if (!res.ok) throw new Error('Failed to fetch post');
-        const data = await res.json();
-        setPost(data);
+        const data: Post[] = await res.json();
+        const slugify = (str: string) =>
+          str.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+        const matched = data.find(
+          (g) => slugify(g.title) === title?.toLowerCase()
+        );
+        
+        if (matched) {
+          setPost(matched);
+        } else {
+          setError('Post not found');
+        }
       } catch (err: any) {
         setError(err.message || 'Something went wrong');
       } finally {
         setLoading(false);
       }
     };
-
-    if (openedPostId) {
-      fetchPost();
-    }
-  }, [openedPostId, token, logout]);
+  
+    fetchPost();
+  }, [title, token, logout]);
+  
 
   if (loading) return <CircularProgress />;
   if (error) return <Typography color="error">{error}</Typography>;
@@ -67,9 +78,9 @@ export default function SinglePost({ openedPostId }: { openedPostId: string }): 
         <Typography variant="subtitle1" gutterBottom color="text.secondary">
           By: {post.author?.username ?? 'Unknown'}
         </Typography>
-        <Typography variant="body1" sx={{ mt: 2 }}>
+        <ReactMarkdown>
           {post.content}
-        </Typography>
+        </ReactMarkdown>
       </Paper>
     </Container>
   );

@@ -5,6 +5,7 @@ import App from './App.tsx'
 import { UserProvider } from './context/UserContext.tsx'
 import { ThemeProvider } from '@emotion/react'
 import { createTheme, CssBaseline } from '@mui/material'
+import { BrowserRouter } from 'react-router-dom';
 
 const darkTheme = createTheme({
   palette: {
@@ -16,8 +17,10 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider theme={darkTheme}>
       <UserProvider>
-        <CssBaseline />
-        <App />
+        <BrowserRouter>
+          <CssBaseline />
+          <App />
+        </BrowserRouter>
       </UserProvider>
     </ThemeProvider>
   </StrictMode>,

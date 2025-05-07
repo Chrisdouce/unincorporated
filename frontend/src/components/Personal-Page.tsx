@@ -19,7 +19,6 @@ export default function PersonalPage({ openedUserId }: { openedUserId: string })
             skillAverage: 0,
         },
     });
-
     useEffect(() => {
         async function fetchUserData() {
             try {
@@ -141,7 +140,6 @@ export default function PersonalPage({ openedUserId }: { openedUserId: string })
                 body: JSON.stringify({ "friendId": openedUserId }),
             });
             if (res.status === 200) {
-                console.log('Friend removed successfully!');
                 setIsFriend(false);
                 setCanSendFriendRequest(true);
             } else {

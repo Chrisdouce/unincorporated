@@ -53,7 +53,7 @@ router.get('/posts/:postId', verifyToken, async (req, res, next) => {
             res.status(404).json({ error: 'Invalid UUID' });
             return;
         } 
-        const post = await getAllPostsByUserId(req.params.postId);
+        const post = await getPostByPostId(req.params.postId);
         if (!post) {
             res.status(404).json({ error: 'Post not found' });
             return;

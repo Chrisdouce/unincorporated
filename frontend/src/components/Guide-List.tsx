@@ -21,6 +21,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { useEffect, useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import ReactMarkdown from 'react-markdown';
 
@@ -30,6 +31,11 @@ interface Guide {
   content: string;
   ownerId: string;
   username: string;
+  createdAt: string; // Added createdAt property
+}
+
+function slugify (title: string) {
+  return title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
 }
 
 const ITEMS_PER_PAGE = 5;
@@ -79,9 +85,9 @@ export default function GuidesList() {
 
   const handleCreatePost = async () => {
     if (!newTitle || !newContent) return;
-  
+    const userId = token ? JSON.parse(atob(token.split('.')[1])).userId : null;
     try {
-      const res = await fetch(`http://localhost:3000/api/v1/posts`, {
+      const res = await fetch(`http://localhost:3000/api/v1/users/${userId}/posts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -119,15 +125,15 @@ export default function GuidesList() {
   if (error) return <Typography color="error">{error}</Typography>;
 
   return (
-    <Container maxWidth="md" sx={{ mt: 4 }}>
+    <Container sx={{ mt: 2 }}>
       <Paper elevation={3} sx={{ p: 3 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h5">Guides</Typography>
+          <Typography variant="h5">Search for Guides</Typography>
           <IconButton color="primary" onClick={() => setOpen(true)}>
-            <AddIcon />
+            Create Guide<AddIcon />
           </IconButton>
         </Box>
-    <Box mb={2}>
+        <Box mb={2}>
           <TextField
             label="Search Guides"
             variant="outlined"
@@ -144,8 +150,19 @@ export default function GuidesList() {
           {displayedPosts.map((post) => (
             <ListItem key={post.postId} sx={{ mb: 2 }} divider>
               <ListItemText
-                primary={<MuiLink>{post.title}</MuiLink>}
-                secondary={`By: ${post.username || 'Unknown'}`}
+              primary={
+                <MuiLink component={RouterLink} to={`/guides/${slugify(post.title)}`} underline="hover">
+                  {post.title}
+                </MuiLink>
+              }
+              secondary={
+                <>
+                By: {' '}
+                <Typography component="span" fontWeight="bold">
+                  {post.username || 'Unknown'}
+                </Typography>{' '}
+                </>
+              }
               />
             </ListItem>
           ))}
