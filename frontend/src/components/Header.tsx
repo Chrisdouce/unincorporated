@@ -14,6 +14,7 @@ import {
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Link } from 'react-router-dom';
+import FriendNotif from './Friend-Notif';
 
 type Props = {
   isLoggedIn: boolean;
@@ -29,7 +30,7 @@ export default function Header({ isLoggedIn, onLogout }: Props) {
 
   // Determine the selected tab based on URL
   const currentPath = location.pathname;
-  const currentTab = tabRoutes.indexOf(currentPath);
+  const currentTab = tabRoutes.findIndex(route => currentPath.startsWith(route));
   const [tabValue, setTabValue] = useState(currentTab === -1 ? 0 : currentTab);
 
   useEffect(() => {
@@ -68,7 +69,7 @@ export default function Header({ isLoggedIn, onLogout }: Props) {
               color: 'inherit',
             }}
           >
-            <img src="./src/assets/icon.jpg" alt="Logo" style={{ height: 40 }} />
+            <img src="../src/assets/icon.jpg" alt="Logo" style={{ height: 40 }} />
             <Typography variant="h6" component="div" sx={{ pl: 2 }}>
               Unincorporated
             </Typography>
@@ -81,10 +82,13 @@ export default function Header({ isLoggedIn, onLogout }: Props) {
               ))}
             </Tabs>
           </Box>
+          
+          <FriendNotif />
 
           <IconButton onClick={handleMenuOpen}>
             <MoreVertIcon />
           </IconButton>
+          
           <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
             <MenuItem onClick={() => { handleMenuClose(); navigate('/profile'); }}>Profile</MenuItem>
             <MenuItem onClick={() => { handleMenuClose(); navigate('/settings'); }}>Settings</MenuItem>

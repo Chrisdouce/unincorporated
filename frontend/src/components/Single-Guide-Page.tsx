@@ -16,6 +16,7 @@ import { useParams } from 'react-router';
 import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt';
 import ThumbDownAltIcon from '@mui/icons-material/ThumbDownAlt';
 import TagFacesIcon from '@mui/icons-material/TagFaces';
+import { Link } from 'react-router-dom';
 
 const reactionsMap = {
   like: { icon: <ThumbUpAltIcon />, label: 'Like' },
@@ -75,7 +76,7 @@ export default function Guide(): JSX.Element {
         return;
       }
 
-      setUserReaction(null); // Reset early
+      setUserReaction(null);
 
       const res = await fetch(`http://localhost:3000/api/v1/posts/${postId}`, {
         headers: {
@@ -92,7 +93,22 @@ export default function Guide(): JSX.Element {
         setError('Post not found');
         return;
       }
-
+      const userRes = await fetch(`http://localhost:3000/api/v1/users/${data.ownerId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const dataUser = await userRes.json();
+      if (!dataUser) {
+        setError('Post not found');
+        return;
+      }
+      if (userRes.status === 401) {
+        logout();
+        return;
+      }
+      data.username = dataUser.username;
       const userId = JSON.parse(atob(token.split('.')[1])).userId;
       const reactionsRes = await fetch(
         `http://localhost:3000/api/v1/users/${userId}/posts/${postId}/reactions`,
@@ -195,7 +211,18 @@ export default function Guide(): JSX.Element {
               {post.title}
             </Typography>
             <Typography variant="subtitle1" gutterBottom color="text.secondary">
-              By: {post.author?.username ?? 'Unknown'}
+              By:{' '}
+              <Box
+                component={Link}
+                to={`/users/${post.author.id}`}
+                sx={{
+                  textDecoration: 'none',
+                  color: 'primary.main',
+                  '&:hover': { textDecoration: 'underline' },
+                }}
+              >
+                {post.author?.username ?? 'Unknown'}
+              </Box>
             </Typography>
           </Box>
 
