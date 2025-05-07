@@ -180,16 +180,25 @@ export default function Guide() {
         </Button>
 
         <Box sx={{ flexGrow: 1 }}>
-          <TextField fullWidth label="Search for Guides" variant="outlined" />
+        <TextField
+          fullWidth
+          label="Search for Guides"
+          variant="outlined"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
         </Box>
-        <Button variant="outlined">Filter</Button>
       </Box>
     </Box>
+    <Divider sx={{ marginY: 2 }} />
     <Box margin="auto" padding={2}>
       
-      <Divider sx={{ marginY: 2 }} />
       <List>
-        {displayedPosts.map((post) => (
+      {displayedPosts.map((post) => {
+        const currentUserId = token ? JSON.parse(atob(token.split('.')[1])).userId : null;
+        const isOwner = post.ownerId === currentUserId;
+
+        return (
           <ListItem
             key={post.postId}
             sx={{
@@ -201,60 +210,87 @@ export default function Guide() {
               marginBottom: 2,
             }}
           >
-            <Typography
-              variant="h6"
-              component="a"
-              href={`/guides/${post.postId}`}
-              sx={{
-                textDecoration: "none",
-                color: "primary.main",
-                '&:hover': { textDecoration: "underline" },
-              }}
-            >
-              {post.title}
-            </Typography>
+        <Typography
+          variant="h6"
+          component="a"
+          href={`/guides/${post.postId}`}
+          sx={{
+            textDecoration: "none",
+            color: "primary.main",
+            '&:hover': { textDecoration: "underline" },
+          }}
+        >
+          {post.title}
+        </Typography>
 
-            <Typography
-              variant="body1"
-              sx={{
-                whiteSpace: "pre-wrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                display: "-webkit-box",
-                WebkitLineClamp: 5, // show only 5 lines
-                WebkitBoxOrient: "vertical",
-              }}
-            >
-              {post.content}
-            </Typography>
+        <Typography
+          variant="body1"
+          sx={{
+            whiteSpace: "pre-wrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            display: "-webkit-box",
+            WebkitLineClamp: 5,
+            WebkitBoxOrient: "vertical",
+          }}
+        >
+          {post.content}
+        </Typography>
 
-            <Typography variant="caption" color="textSecondary">
-              Created at: {new Date(post.createdAt).toLocaleString()}
-            </Typography>
+        <Typography variant="caption" color="textSecondary">
+          Created at: {new Date(post.createdAt).toLocaleString()}
+        </Typography>
 
-            <Typography
-              variant="caption"
-              color="primary"
-              component="a"
-              href={`/users/${post.ownerId}`}
-              sx={{ textDecoration: "none", "&:hover": { textDecoration: "underline" }, mt: 0.5 }}
-            >
-              @{post.username || "Unknown"}
-            </Typography>
+        <Typography
+          variant="caption"
+          color="primary"
+          component="a"
+          href={`/users/${post.ownerId}`}
+          sx={{ textDecoration: "none", "&:hover": { textDecoration: "underline" }, mt: 0.5 }}
+        >
+          @{post.username || "Unknown"}
+        </Typography>
 
-            {post.reactions && post.reactions.length > 0 && (
-              <Stack direction="row" spacing={1} mt={1}>
-                {post.reactions.map((reaction) => (
-                  <Typography key={reaction.type} variant="caption" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                    {reaction.type === "like" ? "👍" : "👎"} {reaction.count}
-                  </Typography>
-                ))}
+      {post.reactions && post.reactions.length > 0 && (
+        <Stack direction="row" spacing={1} mt={1}>
+          {post.reactions.map((reaction) => (
+            <Typography key={reaction.type} variant="caption" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              {reaction.type === "like" ? "👍" : "👎"} {reaction.count}
+            </Typography>
+          ))}
+        </Stack>
+      )}
+
+      {isOwner && (
+        <Stack direction="row" spacing={1} mt={2}>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => {
+              setOpen(true);
+              setIsEditing(true);
+              setEditingPostId(post.postId);
+              setNewTitle(post.title);
+              setNewContent(post.content);
+            }}
+          >
+            Edit
+          </Button>
+          <Button
+            variant="outlined"
+            color="error"
+            size="small"
+            onClick={() => handleDeletePost(post.postId)}
+          >
+            Delete
+          </Button>
               </Stack>
             )}
           </ListItem>
-        ))}
+        );
+      })}
       </List>
-
+        
 
       <Dialog
         open={open}
@@ -342,8 +378,13 @@ export default function Guide() {
           </Button>
         </DialogActions>
       </Dialog>
-
+      {displayedPosts.length === 0 && (
+          <Typography align="center">
+              No guides found :(
+          </Typography>
+      )}
     </Box>
+    
     </>
   );
 }
