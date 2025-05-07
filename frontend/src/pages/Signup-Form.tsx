@@ -23,7 +23,7 @@ export default function SignUpPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [hasFailedSignup, setHasFailedSignup] = useState(false);
   const [failedSignupMessage, setFailedSignupMessage] = useState('');
-
+  
   function handleUpdateUsername(value: string) {
     setUsername(value);
     setHasFailedSignup(false);
